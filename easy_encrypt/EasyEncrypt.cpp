@@ -627,7 +627,7 @@ std::string EasyEncrypt::Utils::base64ToHex(const char *input) {
 std::string EasyEncrypt::Utils::hexToBase64(const char *input) {
 
     char* hexData;
-    memset(hexData, 0, sizeof(input) / 2);
+    memset(hexData, 0, sizeof(input) / 2); //TODO (fix)
 
     EasyEncrypt::Utils::fromHex(input, sizeof(input), hexData);
 
