@@ -1,7 +1,7 @@
 # easy_encrypt_cpp
 
-<b>Important note</b><br>
-Currently untested and not cleaned up all the way yet. C implementation coming as well.
+<b>Important note<br>
+Currently untested and not cleaned up all the way yet. Some functions may not work as expected or at all. C implementation coming as well.</b>
 
 Easy one line function calls for AES Encryption, SHA hashes, MD5 hashes, key generation, encoding and other utilities using the OpenSSL library.
 
