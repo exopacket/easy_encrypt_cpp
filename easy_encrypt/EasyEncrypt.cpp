@@ -74,7 +74,7 @@ int EasyEncrypt::Utils::goodRandom(int start, int end, int seed) {
     memset(&randBite, 0, 1);
     secureRandom((unsigned char*) &randBite, 1);
 
-    int seedVal = (randBite - (randBite^randBite)) + seed;
+    int seedVal = (nanos - (randBite^randBite)) + seed;
 
     rng.seed(seedVal);
     std::uniform_int_distribution<uint32_t> uint_dist10(start,end);
