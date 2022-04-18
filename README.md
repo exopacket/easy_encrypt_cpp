@@ -64,7 +64,7 @@ std::string sha256Result = EasyEncrypt::SHA::hash256((char*) myData.c_str());   
 
 std::string sha512Result = EasyEncrypt::SHA::hash512((char*) myData.c_str());       //The function call with converting to c string & casting the data as char array.
 
-std::string hmac256Result = EasyEncrypt::SHA::hash256(                //The function call
+std::string hmac256Result = EasyEncrypt::SHA::hmac256(                //The function call
                                     (char*) myData.c_str(),           // Converting to c string & casting the data as char array.
                                     (char*) myHmacKey.c_str()         // Converting the key to a c string and casting the data as a char array.
                             );
