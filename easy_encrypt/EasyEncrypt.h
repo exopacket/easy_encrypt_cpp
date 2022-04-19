@@ -16,18 +16,18 @@ public:
 
     class AES {
     public:
-        static std::string cbc256(char* data, ssize_t data_len, char* key, char* iv, bool encrypt);
-        static std::string ecb256(char* data, ssize_t data_len, char* key, bool encrypt);
-        static std::string cbc128(char* data, ssize_t data_len, char* key, char* iv, bool encrypt);
-        static std::string ecb128(char* data, ssize_t data_len, char* key, bool encrypt);
+        static std::string cbc256(char* data, char* key, char* iv, bool encrypt);
+        static std::string ecb256(char* data, char* key, bool encrypt);
+        static std::string cbc128(char* data, char* key, char* iv, bool encrypt);
+        static std::string ecb128(char* data, char* key, bool encrypt);
         
     };
     class SHA {
     public:
-        static std::string hmac512(char *data, ssize_t data_len, char* key, ssize_t key_len);
-        static std::string hmac256(char *data, ssize_t data_len, char* key, ssize_t key_len);
-        static std::string hash512(char* data, ssize_t data_len);
-        static std::string hash256(char* data, ssize_t data_len);
+        static std::string hmac512(char *data, char* key);
+        static std::string hmac256(char *data, char* key);
+        static std::string hash512(char* data);
+        static std::string hash256(char* data);
     };
     class MD5 {
     public:
