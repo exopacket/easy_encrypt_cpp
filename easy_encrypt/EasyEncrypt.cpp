@@ -546,6 +546,44 @@ std::string EasyEncrypt::SHA::hmac256(char *data, char* _key) {
 
 }
 
+std::string EasyEncrypt::SHA::hmac512(char *data, char* _key) {
+
+    size_t len;
+    unsigned char hash[SHA512_DIGEST_LENGTH];
+
+    std::vector<unsigned char> key = EasyEncrypt::Utils::toVector(_key, sizeof(_key));
+
+    unsigned char key_input[key.size()];
+
+    memset(key_input, 0, sizeof(key_input));
+    memcpy(key_input, key.data(), key.size());
+
+    OSSL_PARAM params[2];
+    EVP_MAC *mac = EVP_MAC_fetch(NULL, "HMAC", NULL);
+    EVP_MAC_CTX *mac_ctx = EVP_MAC_CTX_new(mac);
+    EVP_MAC_free(mac);
+
+    params[0] = OSSL_PARAM_construct_utf8_string("digest", (char*) "SHA512", 0);
+    params[1] = OSSL_PARAM_construct_end();
+
+    EVP_MAC_init(mac_ctx, key_input, sizeof(key_input), params);
+    EVP_MAC_update(mac_ctx, (const unsigned char*) data, sizeof(data));
+    EVP_MAC_final(mac_ctx, hash, &len, sizeof(hash));
+
+    std::stringstream ss;
+
+    for(int i=0; i<sizeof(hash); i++) {
+
+        ss << std::hex << std::setw(2) << std::setfill('0') << (int) hash[i];
+
+    }
+
+    EVP_MAC_CTX_free(mac_ctx);
+
+    return EasyEncrypt::Utils::toLowerCase(ss.str());
+
+}
+
 std::string EasyEncrypt::MD5::get(char *_data) {
 
     std::vector<unsigned char> data = EasyEncrypt::Utils::toVector(_data, sizeof(_data));
