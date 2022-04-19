@@ -16,17 +16,17 @@ public:
 
     class AES {
     public:
-        static std::string cbc256(char* data, char* key, char* iv, bool encrypt);
-        static std::string ecb256(char* data, char* key, bool encrypt);
-        static std::string cbc128(char* data, char* key, char* iv, bool encrypt);
-        static std::string ecb128(char* data, char* key, bool encrypt);
+        static std::string cbc256(char* data, ssize_t data_len, char* key, char* iv, bool encrypt);
+        static std::string ecb256(char* data, ssize_t data_len, char* key, bool encrypt);
+        static std::string cbc128(char* data, ssize_t data_len, char* key, char* iv, bool encrypt);
+        static std::string ecb128(char* data, ssize_t data_len, char* key, bool encrypt);
     };
     class SHA {
     public:
-        static std::string hmac512(char *data, char* key);
-        static std::string hmac256(char *data, char* key);
-        static std::string hash512(char* input);
-        static std::string hash256(char* input);
+        static std::string hmac512(char *data, ssize_t data_len, char* key, ssize_t key_len);
+        static std::string hmac256(char *data, ssize_t data_len, char* key, ssize_t key_len);
+        static std::string hash512(char* data, ssize_t data_len);
+        static std::string hash256(char* data, ssize_t data_len);
     };
     class MD5 {
     public:
@@ -35,11 +35,12 @@ public:
     class Utils {
     public:
 
-        static void fromHex(const char* source, ssize_t size, char* data);
+        static void fromHex(const char *source, ssize_t size, char** destination);
+        static void fromBase64(const char *source, ssize_t size, char* destination);
 
         static std::vector<unsigned char> base64ToVector(const char* source);
         static std::vector<unsigned char> hexToVector(const char* source, ssize_t size);
-        static std::vector<unsigned char> toVector(char* source, ssize_t size);
+        static std::vector<unsigned char> toVector(char* source, size_t size);
 
         static void secureRandom(unsigned char* dest, ssize_t count);
         static int goodRandom(int start, int end, int seed);
