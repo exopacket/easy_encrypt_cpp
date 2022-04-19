@@ -118,11 +118,9 @@ std::string EasyEncrypt::Utils::toHex(unsigned char* source, ssize_t size) {
 
     std::stringstream ss;
 
-    int s = (int) size;
-
     ss << std::hex << std::setfill('0');
 
-    for (int i=0;i<s;i++)
+    for (int i=0;i<size;i++)
     {
 
         ss << std::setw(2) << static_cast<unsigned>(source[i]);
@@ -141,13 +139,11 @@ std::string EasyEncrypt::Utils::toHex(unsigned char* source, ssize_t size) {
 
 }
 
-std::vector<unsigned char> EasyEncrypt::Utils::toVector(char* source, ssize_t size) {
-
-    int _size = size;
+std::vector<unsigned char> EasyEncrypt::Utils::toVector(char* source, size_t size) {
 
     std::vector<unsigned char> returnVal;
 
-    for(int i=0; i<_size; i++) {
+    for(int i=0; i<size; i++) {
 
         returnVal.push_back((unsigned) source[i]);
 
@@ -182,15 +178,21 @@ std::vector<unsigned char> EasyEncrypt::Utils::hexToVector(const char* source, s
 
         returnVal.push_back((unsigned char) j);
 
-    }    return returnVal;
+    }
+
+    return returnVal;
 
 }
 
-std::string EasyEncrypt::AES::cbc256(char* _data, char* _key, char* _iv, bool encrypt) {
+std::string EasyEncrypt::AES::cbc256(char* _data, ssize_t datalen, char* _key, char* _iv, bool encrypt) {
 
-    std::vector<unsigned char> data = EasyEncrypt::Utils::toVector(_data, sizeof(_data));
-    std::vector<unsigned char> key = EasyEncrypt::Utils::toVector(_key, sizeof(_key));
-    std::vector<unsigned char> iv = EasyEncrypt::Utils::toVector(_iv, sizeof(_iv));
+    std::vector<unsigned char> data = EasyEncrypt::Utils::toVector(_data, datalen);
+    std::vector<unsigned char> key = EasyEncrypt::Utils::toVector(_key, 32);
+    std::vector<unsigned char> iv = EasyEncrypt::Utils::toVector(_iv, 16);
+
+    printf("%s\n", data.data());
+    printf("%s\n", key.data());
+    printf("%s\n", iv.data());
 
     size_t inputLength = data.size();
 
@@ -249,17 +251,20 @@ std::string EasyEncrypt::AES::cbc256(char* _data, char* _key, char* _iv, bool en
         plaintext_len += len;
 
         EVP_CIPHER_CTX_free(ctx);
+
+        printf("res=%s\n", res);
+
         return EasyEncrypt::Utils::toHex(res, plaintext_len);
 
     }
 
 }
 
-std::string EasyEncrypt::AES::cbc128(char* _data, char* _key, char* _iv, bool encrypt) {
+std::string EasyEncrypt::AES::cbc128(char* _data, ssize_t data_len,  char* _key, char* _iv, bool encrypt) {
 
-    std::vector<unsigned char> data = EasyEncrypt::Utils::toVector(_data, sizeof(_data));
-    std::vector<unsigned char> key = EasyEncrypt::Utils::toVector(_key, sizeof(_key));
-    std::vector<unsigned char> iv = EasyEncrypt::Utils::toVector(_iv, sizeof(_iv));
+    std::vector<unsigned char> data = EasyEncrypt::Utils::toVector(_data, data_len);
+    std::vector<unsigned char> key = EasyEncrypt::Utils::toVector(_key, 16);
+    std::vector<unsigned char> iv = EasyEncrypt::Utils::toVector(_iv, 16);
 
     size_t inputLength = data.size();
 
@@ -296,6 +301,7 @@ std::string EasyEncrypt::AES::cbc128(char* _data, char* _key, char* _iv, bool en
         ciphertext_len += len;
 
         EVP_CIPHER_CTX_free(ctx);
+
         return EasyEncrypt::Utils::toHex(res, ciphertext_len);
 
     } else {
@@ -325,10 +331,10 @@ std::string EasyEncrypt::AES::cbc128(char* _data, char* _key, char* _iv, bool en
 
 }
 
-std::string EasyEncrypt::AES::ecb256(char* _data, char* _key, bool encrypt) {
+std::string EasyEncrypt::AES::ecb256(char* _data, ssize_t data_len, char* _key, bool encrypt) {
 
-    std::vector<unsigned char> data = EasyEncrypt::Utils::toVector(_data, sizeof(_data));
-    std::vector<unsigned char> key = EasyEncrypt::Utils::toVector(_key, sizeof(_key));
+    std::vector<unsigned char> data = EasyEncrypt::Utils::toVector(_data, data_len);
+    std::vector<unsigned char> key = EasyEncrypt::Utils::toVector(_key, 32);
 
     size_t inputLength = data.size();
 
@@ -391,10 +397,10 @@ std::string EasyEncrypt::AES::ecb256(char* _data, char* _key, bool encrypt) {
 
 }
 
-std::string EasyEncrypt::AES::ecb128(char* _data, char* _key, bool encrypt) {
+std::string EasyEncrypt::AES::ecb128(char* _data, ssize_t data_len, char* _key, bool encrypt) {
 
-    std::vector<unsigned char> data = EasyEncrypt::Utils::toVector(_data, sizeof(_data));
-    std::vector<unsigned char> key = EasyEncrypt::Utils::toVector(_key, sizeof(_key));
+    std::vector<unsigned char> data = EasyEncrypt::Utils::toVector(_data, data_len);
+    std::vector<unsigned char> key = EasyEncrypt::Utils::toVector(_key, 16);
 
     size_t inputLength = data.size();
 
@@ -457,16 +463,17 @@ std::string EasyEncrypt::AES::ecb128(char* _data, char* _key, bool encrypt) {
 
 }
 
-std::string EasyEncrypt::SHA::hash512(char *source) {
+std::string EasyEncrypt::SHA::hash512(char *source, ssize_t data_len) {
 
     unsigned char hash[EVP_MD_size(EVP_sha512())];
+
+    std::vector<unsigned char> data = EasyEncrypt::Utils::toVector(source, data_len);
 
     const EVP_MD *md = EVP_get_digestbyname("sha512");
     EVP_MD_CTX *mdctx;
     mdctx = EVP_MD_CTX_create();
     EVP_DigestInit_ex(mdctx, md, NULL);
-    EVP_DigestUpdate(mdctx, EasyEncrypt::Utils::toVector(source, sizeof(source)).data(),
-                     EasyEncrypt::Utils::toVector(source, sizeof(source)).size());
+    EVP_DigestUpdate(mdctx, data.data(), data.size());
     unsigned int digest_len;
     EVP_DigestFinal_ex(mdctx, hash, &digest_len);
     std::stringstream ss;
@@ -483,15 +490,17 @@ std::string EasyEncrypt::SHA::hash512(char *source) {
 
 }
 
-std::string EasyEncrypt::SHA::hash256(char *source) {
+std::string EasyEncrypt::SHA::hash256(char *source, ssize_t data_len) {
 
     unsigned char hash[EVP_MD_size(EVP_sha256())];
+
+    std::vector<unsigned char> data = EasyEncrypt::Utils::toVector(source, data_len);
 
     const EVP_MD *md = EVP_get_digestbyname("sha256");
     EVP_MD_CTX *mdctx;
     mdctx = EVP_MD_CTX_create();
     EVP_DigestInit_ex(mdctx, md, NULL);
-    EVP_DigestUpdate(mdctx, EasyEncrypt::Utils::toVector(source, sizeof(source)).data(), EasyEncrypt::Utils::toVector(source, sizeof(source)).size());
+    EVP_DigestUpdate(mdctx, data.data(), data.size());
     unsigned int digest_len;
     EVP_DigestFinal_ex(mdctx, hash, &digest_len);
     std::stringstream ss;
@@ -508,12 +517,13 @@ std::string EasyEncrypt::SHA::hash256(char *source) {
 
 }
 
-std::string EasyEncrypt::SHA::hmac256(char *data, char* _key) {
+std::string EasyEncrypt::SHA::hmac256(char * _data, ssize_t data_len, char* _key, ssize_t key_len) {
 
     size_t len;
     unsigned char hash[SHA256_DIGEST_LENGTH];
 
-    std::vector<unsigned char> key = EasyEncrypt::Utils::toVector(_key, sizeof(_key));
+    std::vector<unsigned char> key = EasyEncrypt::Utils::toVector(_key, key_len);
+    std::vector<unsigned char> data = EasyEncrypt::Utils::toVector(_data, data_len);
 
     unsigned char key_input[key.size()];
 
@@ -529,7 +539,7 @@ std::string EasyEncrypt::SHA::hmac256(char *data, char* _key) {
     params[1] = OSSL_PARAM_construct_end();
 
     EVP_MAC_init(mac_ctx, key_input, sizeof(key_input), params);
-    EVP_MAC_update(mac_ctx, (const unsigned char*) data, sizeof(data));
+    EVP_MAC_update(mac_ctx, data.data(), data.size());
     EVP_MAC_final(mac_ctx, hash, &len, sizeof(hash));
 
     std::stringstream ss;
@@ -546,12 +556,13 @@ std::string EasyEncrypt::SHA::hmac256(char *data, char* _key) {
 
 }
 
-std::string EasyEncrypt::SHA::hmac512(char *data, char* _key) {
+std::string EasyEncrypt::SHA::hmac512(char * _data, ssize_t data_len, char* _key, ssize_t key_len) {
 
     size_t len;
     unsigned char hash[SHA512_DIGEST_LENGTH];
 
-    std::vector<unsigned char> key = EasyEncrypt::Utils::toVector(_key, sizeof(_key));
+    std::vector<unsigned char> key = EasyEncrypt::Utils::toVector(_key, key_len);
+    std::vector<unsigned char> data = EasyEncrypt::Utils::toVector(_data, data_len);
 
     unsigned char key_input[key.size()];
 
@@ -567,7 +578,7 @@ std::string EasyEncrypt::SHA::hmac512(char *data, char* _key) {
     params[1] = OSSL_PARAM_construct_end();
 
     EVP_MAC_init(mac_ctx, key_input, sizeof(key_input), params);
-    EVP_MAC_update(mac_ctx, (const unsigned char*) data, sizeof(data));
+    EVP_MAC_update(mac_ctx, data.data(), data.size());
     EVP_MAC_final(mac_ctx, hash, &len, sizeof(hash));
 
     std::stringstream ss;
@@ -611,12 +622,10 @@ std::string EasyEncrypt::MD5::get(char *_data) {
 
 }
 
-void EasyEncrypt::Utils::fromHex(const char *source, ssize_t size, char *data) {
+void EasyEncrypt::Utils::fromHex(const char *source, ssize_t size, char** destination) {
 
-    std::vector<unsigned char> dataVector = hexToVector(source, size);
-
-    memset(data, 0, dataVector.size());
-    memcpy(data, dataVector.data(), dataVector.size());
+    std::vector<unsigned char> input = hexToVector(source, size);
+    *destination = (char*) input.data();
 
 }
 
@@ -648,13 +657,9 @@ std::string EasyEncrypt::Utils::base64ToHex(const char *input) {
 
 std::string EasyEncrypt::Utils::hexToBase64(const char *input) {
 
-    char* hexData;
-    memset(hexData, 0, sizeof(input) / 2);
+    std::vector<unsigned char> data = hexToVector(input, sizeof(input));
 
-    EasyEncrypt::Utils::fromHex(input, sizeof(input), hexData);
-
-    std::string output = EasyEncrypt::Utils::toBase64((unsigned char*) hexData, sizeof(hexData));
-    free(hexData);
+    std::string output = EasyEncrypt::Utils::toBase64(data.data(), data.size());
 
     return output;
 
