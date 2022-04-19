@@ -23,6 +23,7 @@ public:
     };
     class SHA {
     public:
+        static std::string hmac512(char *data, char* key);
         static std::string hmac256(char *data, char* key);
         static std::string hash512(char* input);
         static std::string hash256(char* input);
