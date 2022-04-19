@@ -507,43 +507,10 @@ std::string EasyEncrypt::SHA::hash256(char *source) {
     return EasyEncrypt::Utils::toLowerCase(ss.str());
 
 }
-/*
-std::string EasyEncrypt::SHA::hmac256Old(char *data, char* _key) {
 
-
-    unsigned int len = EVP_MAX_MD_SIZE;
-    unsigned char hash[SHA256_DIGEST_LENGTH];
-
-    std::vector<unsigned char> key = EasyEncrypt::Utils::toVector(_key, sizeof(_key));
-
-    unsigned char key_input[key.size()];
-
-    memset(key_input, 0, sizeof(key_input));
-    memcpy(key_input, key.data(), key.size());
-
-    HMAC_CTX *hmacCtx;
-    hmacCtx = HMAC_CTX_new();
-    HMAC_Init_ex(hmacCtx, key_input, sizeof(key_input),  EVP_sha256(), NULL);
-    HMAC_Update(hmacCtx, (const unsigned char*) data, sizeof(data));
-    HMAC_Final(hmacCtx, hash, &len);
-
-    std::stringstream ss;
-
-    for(int i=0; i<sizeof(hash); i++) {
-
-        ss << std::hex << std::setw(2) << std::setfill('0') << (int) hash[i];
-
-    }
-
-    HMAC_CTX_free(hmacCtx);
-
-    return EasyEncrypt::Utils::toLowerCase(ss.str());
-
-}
-*/
 std::string EasyEncrypt::SHA::hmac256(char *data, char* _key) {
 
-    ssize_t len;
+    size_t len;
     unsigned char hash[SHA256_DIGEST_LENGTH];
 
     std::vector<unsigned char> key = EasyEncrypt::Utils::toVector(_key, sizeof(_key));
@@ -563,7 +530,7 @@ std::string EasyEncrypt::SHA::hmac256(char *data, char* _key) {
 
     EVP_MAC_init(mac_ctx, key_input, sizeof(key_input), params);
     EVP_MAC_update(mac_ctx, (const unsigned char*) data, sizeof(data));
-    EVP_MAC_final(mac_ctx, hash, reinterpret_cast<size_t *>(&len), sizeof(hash));
+    EVP_MAC_final(mac_ctx, hash, &len, sizeof(hash));
 
     std::stringstream ss;
 
