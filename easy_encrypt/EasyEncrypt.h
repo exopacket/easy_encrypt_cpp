@@ -34,7 +34,7 @@ public:
     class Utils {
     public:
 
-        static void fromHex(const char* source, ssize_t size, char* output);
+        static void fromHex(const char* source, ssize_t size, char* data);
 
         static std::vector<unsigned char> base64ToVector(const char* source);
         static std::vector<unsigned char> hexToVector(const char* source, ssize_t size);
