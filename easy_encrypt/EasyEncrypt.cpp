@@ -184,15 +184,11 @@ std::vector<unsigned char> EasyEncrypt::Utils::hexToVector(const char* source, s
 
 }
 
-std::string EasyEncrypt::AES::cbc256(char* _data, ssize_t datalen, char* _key, char* _iv, bool encrypt) {
+std::string EasyEncrypt::AES::cbc256(char* _data, ssize_t data_len, char* _key, char* _iv, bool encrypt) {
 
-    std::vector<unsigned char> data = EasyEncrypt::Utils::toVector(_data, datalen);
+    std::vector<unsigned char> data = EasyEncrypt::Utils::toVector(_data, data_len);
     std::vector<unsigned char> key = EasyEncrypt::Utils::toVector(_key, 32);
     std::vector<unsigned char> iv = EasyEncrypt::Utils::toVector(_iv, 16);
-
-    printf("%s\n", data.data());
-    printf("%s\n", key.data());
-    printf("%s\n", iv.data());
 
     size_t inputLength = data.size();
 
@@ -251,8 +247,6 @@ std::string EasyEncrypt::AES::cbc256(char* _data, ssize_t datalen, char* _key, c
         plaintext_len += len;
 
         EVP_CIPHER_CTX_free(ctx);
-
-        printf("res=%s\n", res);
 
         return EasyEncrypt::Utils::toHex(res, plaintext_len);
 
