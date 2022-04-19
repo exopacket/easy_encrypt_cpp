@@ -20,6 +20,14 @@ public:
         static std::string ecb256(char* data, ssize_t data_len, char* key, bool encrypt);
         static std::string cbc128(char* data, ssize_t data_len, char* key, char* iv, bool encrypt);
         static std::string ecb128(char* data, ssize_t data_len, char* key, bool encrypt);
+        
+        class Hex {
+            static std::string cbc256(const char* data, char* key, char* iv, bool encrypt);
+            static std::string ecb256(const char* data, char* key, bool encrypt);
+            static std::string cbc128(const char* data, char* key, char* iv, bool encrypt);
+            static std::string ecb128(const char* data, char* key, bool encrypt);
+        };
+        
     };
     class SHA {
     public:
