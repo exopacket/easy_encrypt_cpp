@@ -1,4 +1,4 @@
-# easy_encrypt_cpp
+# easy_encrypt_cpp (currently inop)
 
 <b>Important note<br>
 Went a little too quick with posting this.
