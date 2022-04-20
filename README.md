@@ -1,7 +1,7 @@
 # easy_encrypt_cpp
 
 <b>Important note<br>
-Went a little to quick with posting this.
+Went a little too quick with posting this.
 <br>
 Working on some changes too make it as easy as possible to use this class. (return values, calculating the size, and encoding conversions).
 <br>
