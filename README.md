@@ -1,13 +1,11 @@
 # easy_encrypt_cpp (currently inop)
 
-<b>Important note<br>
-Went a little too quick with posting this.
-<br>
-Working on some changes to make it as easy as possible to use this class. (return values, calculating the size, and encoding conversions).
-<br>
-Currently untested and not cleaned up all the way yet. Some functions may not work as expected or at all (builds okay). C implementation coming as well.</b>
-
 Easy one line function calls for AES Encryption, SHA hashes, MD5 hashes, key generation, encoding and other utilities using the OpenSSL 3 library.
+
+# updating
+
+I'm in the process of updating this class. The header source is here in this repo for anyone who is currently using this library. This readme will change, along with the source file and likely the header's utilities as well.<br><br>
+I went with the best usage cases along with ease-of-use.
 
 # the EasyEncrypt class
 
