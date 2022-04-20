@@ -3,7 +3,7 @@
 <b>Important note<br>
 Went a little too quick with posting this.
 <br>
-Working on some changes too make it as easy as possible to use this class. (return values, calculating the size, and encoding conversions).
+Working on some changes to make it as easy as possible to use this class. (return values, calculating the size, and encoding conversions).
 <br>
 Currently untested and not cleaned up all the way yet. Some functions may not work as expected or at all (builds okay). C implementation coming as well.</b>
 
