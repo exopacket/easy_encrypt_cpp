@@ -2,6 +2,14 @@
 
 Easy one line function calls for AES Encryption, SHA hashes, MD5 hashes, key generation, encoding and other utilities using the OpenSSL 3 library.
 
+# current problems
+
+  - PKCS#5 (for java interop) & PKCS#7 padding
+  - Using binary data (without passing the size) 
+
+Pretty close to figuring this out. This will require adding static fields in order to set the padding and other parameters. Binary data and strings will not need the size. There will be an extra function call for binary data, in order to prepare it for encryption (which does require the size). This prepare function call for binary data is optional for the AES `char*` returning functions since you can enter the size with these functions using the `int* len` parameter. It is required to call that function, however, if you want to encrypt binary data using the AES Hex or Base64 functions as well as all of the one way hash functions.<br>
+I know this complicates things. This will only add support for and change the way you encrypt binary data. Strings remain the same as it is currently. Im sure you can tell I write code in Java primarily, where passing the size doesn't always matter. ;) Anyways, my goal is to provide the easiest to use encryption and one way hash functions. I'll post usage to help out.
+
 # the EasyEncrypt class
 
 The source code for the EasyEncrypt class is available in this repo and contains five inner classes: AES, SHA, MD5, Random and Utils.<br><br>
