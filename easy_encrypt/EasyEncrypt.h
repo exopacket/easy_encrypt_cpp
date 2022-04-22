@@ -38,10 +38,10 @@ public:
 
         class Base64 {
         public:
-            static std::string cbc256(char* data, std::string hex_key, std::string hex_iv, bool encrypt);
-            static std::string ecb256(char* data, std::string hex_key, bool encrypt);
-            static std::string cbc128(char* data, std::string hex_key, std::string hex_iv, bool encrypt);
-            static std::string ecb128(char* data, std::string hex_key, bool encrypt);
+            static std::string cbc256(char* data, std::string base64_key, std::string base64_iv, bool encrypt);
+            static std::string ecb256(char* data, std::string base64_key, bool encrypt);
+            static std::string cbc128(char* data, std::string base64_key, std::string base64_iv, bool encrypt);
+            static std::string ecb128(char* data, std::string base64_key, bool encrypt);
         };
 
     };
