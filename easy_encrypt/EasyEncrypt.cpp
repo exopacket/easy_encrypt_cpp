@@ -153,13 +153,23 @@ char* EasyEncrypt::Utils::fromHex(const char *source) {
 
 }
 
+void calcSize(unsigned char* n, int* s) {
+    int p = -1; int c = 1; int ss = -1; bool f = false;
+    for(int i=0; i<*s; i++) {
+        ss++;
+        int cc = (int) n[i];
+        if(cc == p && cc > 0 && cc <= 16) { f = true; c++; }
+        if(f && cc != p) {if(p == c) { break; } c = 1; } p = cc; }
+        if(p == c) { int sss = ss - c; if(sss % 16 == 0) { *s = sss; }}
+}
+
 char* EasyEncrypt::AES::cbc256(char* data_in, char* key_in, char* iv_in, bool encrypt, int* data_len) {
 
     std::vector<char> data = EasyEncrypt::Utils::toVector(data_in, (encrypt) ? NULL : *data_len);
     std::vector<char> key = EasyEncrypt::Utils::toVector(key_in, 32);
     std::vector<char> iv = EasyEncrypt::Utils::toVector(iv_in, 16);
 
-    size_t data_in_len = data.size();
+    size_t data_in_len = (encrypt) ? data.size() - 1 : *data_len;
 
     unsigned char aes_input[data_in_len];
     unsigned char aes_key[32];
@@ -167,12 +177,12 @@ char* EasyEncrypt::AES::cbc256(char* data_in, char* key_in, char* iv_in, bool en
     memset(aes_input, 0x00, data_in_len);
     memset(aes_key, 0x00, 32);
 
-    memcpy(aes_input,  (unsigned char*) data.data(), data.size());
-    memcpy(aes_key,  (unsigned char*) key.data(), key.size());
+    memcpy(aes_input,  (unsigned char*) data.data(), data_in_len);
+    memcpy(aes_key,  (unsigned char*) key.data(), 32);
 
     unsigned char aes_iv[16];
     memset(aes_iv, 0x00, 16);
-    memcpy(aes_iv, (unsigned char*) iv.data(), iv.size());
+    memcpy(aes_iv, (unsigned char*) iv.data(), 16);
 
     if(encrypt) {
 
@@ -185,10 +195,10 @@ char* EasyEncrypt::AES::cbc256(char* data_in, char* key_in, char* iv_in, bool en
 
         ctx = EVP_CIPHER_CTX_new();
 
-        EVP_CIPHER_CTX_set_padding(ctx, 5);
+        EVP_CIPHER_CTX_set_padding(ctx, EVP_PADDING_PKCS7);
 
         EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, aes_key, aes_iv);
-        EVP_EncryptUpdate(ctx, res, &len, aes_input, sizeof(aes_input));
+        EVP_EncryptUpdate(ctx, res, &len, aes_input, data_in_len);
         ciphertext_len = len;
         EVP_EncryptFinal_ex(ctx, res + len, &len);
         ciphertext_len += len;
@@ -214,18 +224,22 @@ char* EasyEncrypt::AES::cbc256(char* data_in, char* key_in, char* iv_in, bool en
 
         ctx = EVP_CIPHER_CTX_new();
 
-        EVP_CIPHER_CTX_set_padding(ctx, 5);
+        EVP_CIPHER_CTX_set_padding(ctx, EVP_PADDING_PKCS7);
 
         EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, aes_key, aes_iv);
-        EVP_DecryptUpdate(ctx, res, &len, aes_input, data.size());
+        EVP_DecryptUpdate(ctx, res, &len, aes_input, data_in_len);
         plaintext_len = len;
         EVP_DecryptFinal_ex(ctx, res + len, &len);
         plaintext_len += len;
 
         EVP_CIPHER_CTX_free(ctx);
 
-        char* final = (char*) malloc(strlen((const char*) res));
-        memcpy(final, res, strlen((const char*) res));
+        int ptLen = plaintext_len;
+        calcSize(res, &ptLen);
+
+        char* final = (char*) malloc(ptLen);
+        memset(final, 0, ptLen + 1);
+        memcpy(final, res, ptLen);
 
         return final;
 
@@ -239,20 +253,20 @@ char* EasyEncrypt::AES::cbc128(char* data_in, char* key_in, char* iv_in, bool en
     std::vector<char> key = EasyEncrypt::Utils::toVector(key_in, 16);
     std::vector<char> iv = EasyEncrypt::Utils::toVector(iv_in, 16);
 
-    size_t data_in_len = data.size();
+    size_t data_in_len = (encrypt) ? data.size() - 1 : *data_len;
 
     unsigned char aes_input[data_in_len];
-    unsigned char aes_key[32];
+    unsigned char aes_key[16];
 
     memset(aes_input, 0x00, data_in_len);
-    memset(aes_key, 0x00, 32);
+    memset(aes_key, 0x00, 16);
 
-    memcpy(aes_input,  (unsigned char*) data.data(), data.size());
-    memcpy(aes_key,  (unsigned char*) key.data(), key.size());
+    memcpy(aes_input,  (unsigned char*) data.data(), data_in_len);
+    memcpy(aes_key,  (unsigned char*) key.data(), 16);
 
     unsigned char aes_iv[16];
     memset(aes_iv, 0x00, 16);
-    memcpy(aes_iv, (unsigned char*) iv.data(), iv.size());
+    memcpy(aes_iv, (unsigned char*) iv.data(), 16);
 
     if(encrypt) {
 
@@ -265,10 +279,10 @@ char* EasyEncrypt::AES::cbc128(char* data_in, char* key_in, char* iv_in, bool en
 
         ctx = EVP_CIPHER_CTX_new();
 
-        EVP_CIPHER_CTX_set_padding(ctx, 5);
+        EVP_CIPHER_CTX_set_padding(ctx, EVP_PADDING_PKCS7);
 
         EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, aes_key, aes_iv);
-        EVP_EncryptUpdate(ctx, res, &len, aes_input, sizeof(aes_input));
+        EVP_EncryptUpdate(ctx, res, &len, aes_input, data_in_len);
         ciphertext_len = len;
         EVP_EncryptFinal_ex(ctx, res + len, &len);
         ciphertext_len += len;
@@ -294,18 +308,22 @@ char* EasyEncrypt::AES::cbc128(char* data_in, char* key_in, char* iv_in, bool en
 
         ctx = EVP_CIPHER_CTX_new();
 
-        EVP_CIPHER_CTX_set_padding(ctx, 5);
+        EVP_CIPHER_CTX_set_padding(ctx, EVP_PADDING_PKCS7);
 
         EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, aes_key, aes_iv);
-        EVP_DecryptUpdate(ctx, res, &len, aes_input, data.size());
+        EVP_DecryptUpdate(ctx, res, &len, aes_input, data_in_len);
         plaintext_len = len;
         EVP_DecryptFinal_ex(ctx, res + len, &len);
         plaintext_len += len;
 
         EVP_CIPHER_CTX_free(ctx);
 
-        char* final = (char*) malloc(strlen((const char*) res));
-        memcpy(final, res, strlen((const char*) res));
+        int ptLen = plaintext_len;
+        calcSize(res, &ptLen);
+
+        char* final = (char*) malloc(ptLen);
+        memset(final, 0, ptLen + 1);
+        memcpy(final, res, ptLen);
 
         return final;
 
@@ -318,7 +336,7 @@ char* EasyEncrypt::AES::ecb256(char* data_in, char* key_in, bool encrypt, int* d
     std::vector<char> data = EasyEncrypt::Utils::toVector(data_in, (encrypt) ? NULL : *data_len);
     std::vector<char> key = EasyEncrypt::Utils::toVector(key_in, 32);
 
-    size_t data_in_len = data.size();
+    size_t data_in_len = (encrypt) ? data.size() - 1 : *data_len;
 
     unsigned char aes_input[data_in_len];
     unsigned char aes_key[32];
@@ -326,8 +344,8 @@ char* EasyEncrypt::AES::ecb256(char* data_in, char* key_in, bool encrypt, int* d
     memset(aes_input, 0x00, data_in_len);
     memset(aes_key, 0x00, 32);
 
-    memcpy(aes_input,  (unsigned char*) data.data(), data.size());
-    memcpy(aes_key,  (unsigned char*) key.data(), key.size());
+    memcpy(aes_input,  (unsigned char*) data.data(), data_in_len);
+    memcpy(aes_key,  (unsigned char*) key.data(), 32);
 
     if(encrypt) {
 
@@ -340,10 +358,10 @@ char* EasyEncrypt::AES::ecb256(char* data_in, char* key_in, bool encrypt, int* d
 
         ctx = EVP_CIPHER_CTX_new();
 
-        EVP_CIPHER_CTX_set_padding(ctx, 5);
+        EVP_CIPHER_CTX_set_padding(ctx, EVP_PADDING_PKCS7);
 
         EVP_EncryptInit_ex(ctx, EVP_aes_256_ecb(), NULL, aes_key, NULL);
-        EVP_EncryptUpdate(ctx, res, &len, aes_input, sizeof(aes_input));
+        EVP_EncryptUpdate(ctx, res, &len, aes_input, data_in_len);
         ciphertext_len = len;
         EVP_EncryptFinal_ex(ctx, res + len, &len);
         ciphertext_len += len;
@@ -369,18 +387,22 @@ char* EasyEncrypt::AES::ecb256(char* data_in, char* key_in, bool encrypt, int* d
 
         ctx = EVP_CIPHER_CTX_new();
 
-        EVP_CIPHER_CTX_set_padding(ctx, 5);
+        EVP_CIPHER_CTX_set_padding(ctx, EVP_PADDING_PKCS7);
 
         EVP_DecryptInit_ex(ctx, EVP_aes_256_ecb(), NULL, aes_key, NULL);
-        EVP_DecryptUpdate(ctx, res, &len, aes_input, data.size());
+        EVP_DecryptUpdate(ctx, res, &len, aes_input, data_in_len);
         plaintext_len = len;
         EVP_DecryptFinal_ex(ctx, res + len, &len);
         plaintext_len += len;
 
         EVP_CIPHER_CTX_free(ctx);
 
-        char* final = (char*) malloc(strlen((const char*) res));
-        memcpy(final, res, strlen((const char*) res));
+        int ptLen = plaintext_len;
+        calcSize(res, &ptLen);
+
+        char* final = (char*) malloc(ptLen);
+        memset(final, 0, ptLen + 1);
+        memcpy(final, res, ptLen);
 
         return final;
 
@@ -393,16 +415,16 @@ char* EasyEncrypt::AES::ecb128(char* data_in, char* key_in, bool encrypt, int* d
     std::vector<char> data = EasyEncrypt::Utils::toVector(data_in, (encrypt) ? NULL : *data_len);
     std::vector<char> key = EasyEncrypt::Utils::toVector(key_in, 16);
 
-    size_t data_in_len = data.size();
+    size_t data_in_len = (encrypt) ? data.size() - 1 : *data_len;
 
     unsigned char aes_input[data_in_len];
-    unsigned char aes_key[32];
+    unsigned char aes_key[16];
 
     memset(aes_input, 0x00, data_in_len);
-    memset(aes_key, 0x00, 32);
+    memset(aes_key, 0x00, 16);
 
-    memcpy(aes_input,  (unsigned char*) data.data(), data.size());
-    memcpy(aes_key,  (unsigned char*) key.data(), key.size());
+    memcpy(aes_input,  (unsigned char*) data.data(), data_in_len);
+    memcpy(aes_key,  (unsigned char*) key.data(), 16);
 
     if(encrypt) {
 
@@ -415,10 +437,10 @@ char* EasyEncrypt::AES::ecb128(char* data_in, char* key_in, bool encrypt, int* d
 
         ctx = EVP_CIPHER_CTX_new();
 
-        EVP_CIPHER_CTX_set_padding(ctx, 5);
+        EVP_CIPHER_CTX_set_padding(ctx, EVP_PADDING_PKCS7);
 
         EVP_EncryptInit_ex(ctx, EVP_aes_128_ecb(), NULL, aes_key, NULL);
-        EVP_EncryptUpdate(ctx, res, &len, aes_input, sizeof(aes_input));
+        EVP_EncryptUpdate(ctx, res, &len, aes_input, data_in_len);
         ciphertext_len = len;
         EVP_EncryptFinal_ex(ctx, res + len, &len);
         ciphertext_len += len;
@@ -444,18 +466,22 @@ char* EasyEncrypt::AES::ecb128(char* data_in, char* key_in, bool encrypt, int* d
 
         ctx = EVP_CIPHER_CTX_new();
 
-        EVP_CIPHER_CTX_set_padding(ctx, 5);
+        EVP_CIPHER_CTX_set_padding(ctx, EVP_PADDING_PKCS7);
 
         EVP_DecryptInit_ex(ctx, EVP_aes_128_ecb(), NULL, aes_key, NULL);
-        EVP_DecryptUpdate(ctx, res, &len, aes_input, data.size());
+        EVP_DecryptUpdate(ctx, res, &len, aes_input, data_in_len);
         plaintext_len = len;
         EVP_DecryptFinal_ex(ctx, res + len, &len);
         plaintext_len += len;
 
         EVP_CIPHER_CTX_free(ctx);
 
-        char* final = (char*) malloc(strlen((const char*) res));
-        memcpy(final, res, strlen((const char*) res));
+        int ptLen = plaintext_len;
+        calcSize(res, &ptLen);
+
+        char* final = (char*) malloc(ptLen);
+        memset(final, 0, ptLen + 1);
+        memcpy(final, res, ptLen);
 
         return final;
 
@@ -465,18 +491,20 @@ char* EasyEncrypt::AES::ecb128(char* data_in, char* key_in, bool encrypt, int* d
 
 std::string cbc256Encoded(char* data_in, char* key_in, char* iv_in, bool encrypt, int* data_len, EasyEncrypt::encode_t encoding) {
 
-    int len = (encrypt) ? 0 : *data_len;
+    int len = *data_len;
 
-    char* res = EasyEncrypt::AES::cbc256(data_in, key_in, iv_in, encrypt, data_len);
+    char* res = EasyEncrypt::AES::cbc256(data_in, key_in, iv_in, encrypt, &len);
     std::string str;
 
     if(encrypt) {
         str = (encoding == EasyEncrypt::BASE64) ?
-              EasyEncrypt::Utils::toBase64(res, *data_len)
-                                                : EasyEncrypt::Utils::toHex(res, *data_len);
+              EasyEncrypt::Utils::toBase64(res, len)
+                                                : EasyEncrypt::Utils::toHex(res, len);
     } else {
         str = (const char*) res;
     }
+
+    *data_len = len;
 
     free(res);
 
@@ -488,16 +516,18 @@ std::string cbc128Encoded(char* data_in, char* key_in, char* iv_in, bool encrypt
 
     int len = (encrypt) ? 0 : *data_len;
 
-    char* res = EasyEncrypt::AES::cbc128(data_in, key_in, iv_in, encrypt, data_len);
+    char* res = EasyEncrypt::AES::cbc128(data_in, key_in, iv_in, encrypt, &len);
     std::string str;
 
     if(encrypt) {
         str = (encoding == EasyEncrypt::BASE64) ?
-              EasyEncrypt::Utils::toBase64(res, *data_len)
-                                                : EasyEncrypt::Utils::toHex(res, *data_len);
+              EasyEncrypt::Utils::toBase64(res, len)
+                                                : EasyEncrypt::Utils::toHex(res, len);
     } else {
         str = (const char*) res;
     }
+
+    *data_len = len;
 
     free(res);
 
@@ -509,16 +539,18 @@ std::string ecb256Encoded(char* data_in, char* key_in, bool encrypt, int* data_l
 
     int len = (encrypt) ? 0 : *data_len;
 
-    char* res = EasyEncrypt::AES::ecb256(data_in, key_in, encrypt, data_len);
+    char* res = EasyEncrypt::AES::ecb256(data_in, key_in, encrypt, &len);
     std::string str;
 
     if(encrypt) {
         str = (encoding == EasyEncrypt::BASE64) ?
-              EasyEncrypt::Utils::toBase64(res, *data_len)
-                                                : EasyEncrypt::Utils::toHex(res, *data_len);
+              EasyEncrypt::Utils::toBase64(res, len)
+                                                : EasyEncrypt::Utils::toHex(res, len);
     } else {
         str = (const char*) res;
     }
+
+    *data_len = len;
 
     free(res);
 
@@ -530,16 +562,18 @@ std::string ecb128Encoded(char* data_in, char* key_in,  bool encrypt, int* data_
 
     int len = (encrypt) ? 0 : *data_len;
 
-    char* res = EasyEncrypt::AES::ecb128(data_in, key_in, encrypt, data_len);
+    char* res = EasyEncrypt::AES::ecb128(data_in, key_in, encrypt, &len);
     std::string str;
 
     if(encrypt) {
         str = (encoding == EasyEncrypt::BASE64) ?
-              EasyEncrypt::Utils::toBase64(res, *data_len)
-                                                : EasyEncrypt::Utils::toHex(res, *data_len);
+              EasyEncrypt::Utils::toBase64(res, len)
+                                                : EasyEncrypt::Utils::toHex(res, len);
     } else {
         str = (const char*) res;
     }
+
+    *data_len = len;
 
     free(res);
 
@@ -549,9 +583,9 @@ std::string ecb128Encoded(char* data_in, char* key_in,  bool encrypt, int* data_
 
 std::string EasyEncrypt::AES::Hex::cbc256(char* data_in, std::string key_in, std::string iv_in, bool encrypt) {
 
-    int len = 0;
-
     char* data = (encrypt) ? data_in : EasyEncrypt::Utils::fromHex((const char*) data_in);
+
+    int len = (encrypt) ? 0 : strlen(data);
 
     char* key = EasyEncrypt::Utils::fromHex(key_in.c_str());
     char* iv = EasyEncrypt::Utils::fromHex(iv_in.c_str());
@@ -562,9 +596,9 @@ std::string EasyEncrypt::AES::Hex::cbc256(char* data_in, std::string key_in, std
 
 std::string EasyEncrypt::AES::Base64::cbc256(char* data_in, std::string key_in, std::string iv_in, bool encrypt) {
 
-    int len = 0;
-
     char* data = (encrypt) ? data_in : EasyEncrypt::Utils::fromBase64((const char*) data_in);
+
+    int len = (encrypt) ? 0 : strlen(data);
 
     char* key = EasyEncrypt::Utils::fromBase64(key_in.c_str());
     char* iv = EasyEncrypt::Utils::fromBase64(iv_in.c_str());
@@ -575,9 +609,9 @@ std::string EasyEncrypt::AES::Base64::cbc256(char* data_in, std::string key_in, 
 
 std::string EasyEncrypt::AES::Hex::cbc128(char* data_in, std::string key_in, std::string iv_in, bool encrypt) {
 
-    int len = 0;
-
     char* data = (encrypt) ? data_in : EasyEncrypt::Utils::fromHex((const char*) data_in);
+
+    int len = (encrypt) ? 0 : strlen(data);
 
     char* key = EasyEncrypt::Utils::fromHex(key_in.c_str());
     char* iv = EasyEncrypt::Utils::fromHex(iv_in.c_str());
@@ -588,9 +622,9 @@ std::string EasyEncrypt::AES::Hex::cbc128(char* data_in, std::string key_in, std
 
 std::string EasyEncrypt::AES::Base64::cbc128(char* data_in, std::string key_in, std::string iv_in, bool encrypt) {
 
-    int len = 0;
-
     char* data = (encrypt) ? data_in : EasyEncrypt::Utils::fromBase64((const char*) data_in);
+
+    int len = (encrypt) ? 0 : strlen(data);
 
     char* key = EasyEncrypt::Utils::fromBase64(key_in.c_str());
     char* iv = EasyEncrypt::Utils::fromBase64(iv_in.c_str());
@@ -601,9 +635,9 @@ std::string EasyEncrypt::AES::Base64::cbc128(char* data_in, std::string key_in, 
 
 std::string EasyEncrypt::AES::Hex::ecb256(char* data_in, std::string key_in, bool encrypt) {
 
-    int len = 0;
-
     char* data = (encrypt) ? data_in : EasyEncrypt::Utils::fromHex((const char*) data_in);
+
+    int len = (encrypt) ? 0 : strlen(data);
 
     char* key = EasyEncrypt::Utils::fromHex(key_in.c_str());
 
@@ -613,9 +647,9 @@ std::string EasyEncrypt::AES::Hex::ecb256(char* data_in, std::string key_in, boo
 
 std::string EasyEncrypt::AES::Base64::ecb256(char* data_in, std::string key_in, bool encrypt) {
 
-    int len = 0;
-
     char* data = (encrypt) ? data_in : EasyEncrypt::Utils::fromBase64((const char*) data_in);
+
+    int len = (encrypt) ? 0 : strlen(data);
 
     char* key = EasyEncrypt::Utils::fromBase64(key_in.c_str());
 
@@ -625,9 +659,9 @@ std::string EasyEncrypt::AES::Base64::ecb256(char* data_in, std::string key_in, 
 
 std::string EasyEncrypt::AES::Hex::ecb128(char* data_in, std::string key_in, bool encrypt) {
 
-    int len = 0;
-
     char* data = (encrypt) ? data_in : EasyEncrypt::Utils::fromHex((const char*) data_in);
+
+    int len = (encrypt) ? 0 : strlen(data);
 
     char* key = EasyEncrypt::Utils::fromHex(key_in.c_str());
 
@@ -637,9 +671,9 @@ std::string EasyEncrypt::AES::Hex::ecb128(char* data_in, std::string key_in, boo
 
 std::string EasyEncrypt::AES::Base64::ecb128(char* data_in, std::string key_in, bool encrypt) {
 
-    int len = 0;
-
     char* data = (encrypt) ? data_in : EasyEncrypt::Utils::fromBase64((const char*) data_in);
+
+    int len = (encrypt) ? 0 : strlen(data);
 
     char* key = EasyEncrypt::Utils::fromBase64(key_in.c_str());
 
@@ -822,7 +856,6 @@ std::string EasyEncrypt::SHA::Hex::hash512(char *data) {
 
 }
 
-
 std::string EasyEncrypt::SHA::Base64::hash512(char *data) {
 
     return hash512Encoded(data, EasyEncrypt::BASE64);
@@ -842,7 +875,6 @@ std::string EasyEncrypt::SHA::Hex::hash256(char *data) {
     return hash256Encoded(data, EasyEncrypt::HEX);
 
 }
-
 
 std::string EasyEncrypt::SHA::Base64::hash256(char *data) {
 
@@ -864,13 +896,11 @@ std::string EasyEncrypt::SHA::Hex::hmac512(char *data, char* key) {
 
 }
 
-
 std::string EasyEncrypt::SHA::Base64::hmac512(char *data, char* key) {
 
     return hmac512Encoded(data, key, EasyEncrypt::BASE64);
 
 }
-
 
 std::string hmac256Encoded(char* data, char* key, EasyEncrypt::encode_t encoding) {
 
@@ -886,13 +916,11 @@ std::string EasyEncrypt::SHA::Hex::hmac256(char *data, char* key) {
 
 }
 
-
 std::string EasyEncrypt::SHA::Base64::hmac256(char *data, char* key) {
 
     return hmac256Encoded(data, key, EasyEncrypt::BASE64);
 
 }
-
 
 std::string getMd5Encoded(char* data, EasyEncrypt::encode_t encoding) {
 
@@ -907,7 +935,6 @@ std::string EasyEncrypt::MD5::Hex::get(char *data) {
     return getMd5Encoded(data, EasyEncrypt::HEX);
 
 }
-
 
 std::string EasyEncrypt::MD5::Base64::get(char *data) {
 
@@ -953,8 +980,6 @@ std::string EasyEncrypt::Utils::hexToBase64(const char *input) {
     return output;
 
 }
-
-
 
 char* EasyEncrypt::Random::secureRandom(size_t count) {
 
