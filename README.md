@@ -1,6 +1,6 @@
 # easy_encrypt_cpp
 
-Easy one line function calls for AES Encryption, SHA hashes, MD5 hashes, key generation, encoding and other utilities using the OpenSSL 3 library.
+Easy one line function calls for AES Encryption, SHA hashes, MD5 hashes, RSA Public Key encryption with Private Key decryption, key generation, encoding and other utilities using the OpenSSL 3 library.
 
 # the EasyEncrypt class
 
