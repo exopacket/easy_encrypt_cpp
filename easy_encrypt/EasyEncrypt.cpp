@@ -9,10 +9,13 @@
 #include <sstream>
 #include <vector>
 #include "openssl/conf.h"
+#include <openssl/provider.h>
 #include "openssl/evp.h"
 #include "openssl/aes.h"
 #include "openssl/sha.h"
 #include "openssl/rand.h"
+#include <openssl/rsa.h>
+#include <openssl/pem.h>
 #include "EasyEncrypt.h"
 #include "Base64.h"
 
@@ -94,21 +97,19 @@ std::vector<char> EasyEncrypt::Utils::toVector(char* source, size_t _size) {
 
     }
 
-    returnVal.push_back('\0');
 
     return returnVal;
 
 }
 
-std::vector<unsigned char> EasyEncrypt::Utils::hexToVector(const char* source, size_t size) {
+std::vector<char> EasyEncrypt::Utils::hexToVector(std::string input, size_t size) {
 
     int _size = (size) / 2;
 
-    std::string input = source;
     int x=0;
     int i;
 
-    std::vector<unsigned char> returnVal;
+    std::vector<char> returnVal;
 
     for(i=0;i<_size; i++) {
 
@@ -123,7 +124,7 @@ std::vector<unsigned char> EasyEncrypt::Utils::hexToVector(const char* source, s
         unsigned int j;
         ss >> j;
 
-        returnVal.push_back((unsigned char) j);
+        returnVal.push_back((signed) ((unsigned char) j));
 
     }
 
@@ -131,25 +132,32 @@ std::vector<unsigned char> EasyEncrypt::Utils::hexToVector(const char* source, s
 
 }
 
-char* EasyEncrypt::Utils::fromBase64(const char *source) {
+std::vector<char> EasyEncrypt::Utils::stringToVector(std::string source) {
 
-    std::string out;
+    std::vector<char> returnVal;
 
-    Base64::Decode(source, out);
+    for(int i=0; i<source.length(); i++) {
 
-    return (char*) out.c_str();
+        returnVal.push_back(source.at(i));
+
+    }
+
+    return returnVal;
 
 }
 
-char* EasyEncrypt::Utils::fromHex(const char *source) {
+std::vector<char> EasyEncrypt::Utils::fromBase64(std::string source) {
 
-    std::vector<unsigned char> dataVector = hexToVector(source, strlen(source));
+    std::string res;
+    Base64::Decode(source, res);
 
-    char* data = (char*) malloc(dataVector.size());
-    memset(data, 0, dataVector.size());
-    memcpy(data, dataVector.data(), dataVector.size());
+    return stringToVector(res);
 
-    return data;
+}
+
+std::vector<char> EasyEncrypt::Utils::fromHex(std::string source) {
+
+    return hexToVector(source, source.length());
 
 }
 
@@ -163,12 +171,12 @@ void calcSize(unsigned char* n, int* s) {
         if(p == c) { int sss = ss - c; if(sss % 16 == 0) { *s = sss; }}
 }
 
-char* EasyEncrypt::AES::cbc256(char* data_in, char* key_in, char* iv_in, bool encrypt, int* data_len) {
+char* EasyEncrypt::AES::cbc256(char* data_in, int* data_len, char* key_in, char* iv_in, bool encrypt) {
 
     std::vector<char> data = EasyEncrypt::Utils::toVector(data_in, (encrypt) ? NULL : *data_len);
     std::vector<char> key = EasyEncrypt::Utils::toVector(key_in, 32);
     std::vector<char> iv = EasyEncrypt::Utils::toVector(iv_in, 16);
-
+    
     size_t data_in_len = (encrypt) ? data.size() - 1 : *data_len;
 
     unsigned char aes_input[data_in_len];
@@ -247,7 +255,7 @@ char* EasyEncrypt::AES::cbc256(char* data_in, char* key_in, char* iv_in, bool en
 
 }
 
-char* EasyEncrypt::AES::cbc128(char* data_in, char* key_in, char* iv_in, bool encrypt, int* data_len) {
+char* EasyEncrypt::AES::cbc128(char* data_in, int* data_len, char* key_in, char* iv_in, bool encrypt) {
 
     std::vector<char> data = EasyEncrypt::Utils::toVector(data_in, (encrypt) ? NULL : *data_len);
     std::vector<char> key = EasyEncrypt::Utils::toVector(key_in, 16);
@@ -331,7 +339,7 @@ char* EasyEncrypt::AES::cbc128(char* data_in, char* key_in, char* iv_in, bool en
 
 }
 
-char* EasyEncrypt::AES::ecb256(char* data_in, char* key_in, bool encrypt, int* data_len) {
+char* EasyEncrypt::AES::ecb256(char* data_in, int* data_len, char* key_in, bool encrypt) {
 
     std::vector<char> data = EasyEncrypt::Utils::toVector(data_in, (encrypt) ? NULL : *data_len);
     std::vector<char> key = EasyEncrypt::Utils::toVector(key_in, 32);
@@ -410,7 +418,7 @@ char* EasyEncrypt::AES::ecb256(char* data_in, char* key_in, bool encrypt, int* d
 
 }
 
-char* EasyEncrypt::AES::ecb128(char* data_in, char* key_in, bool encrypt, int* data_len) {
+char* EasyEncrypt::AES::ecb128(char* data_in, int* data_len, char* key_in, bool encrypt) {
 
     std::vector<char> data = EasyEncrypt::Utils::toVector(data_in, (encrypt) ? NULL : *data_len);
     std::vector<char> key = EasyEncrypt::Utils::toVector(key_in, 16);
@@ -492,8 +500,8 @@ char* EasyEncrypt::AES::ecb128(char* data_in, char* key_in, bool encrypt, int* d
 std::string cbc256Encoded(char* data_in, char* key_in, char* iv_in, bool encrypt, int* data_len, EasyEncrypt::encode_t encoding) {
 
     int len = *data_len;
-
-    char* res = EasyEncrypt::AES::cbc256(data_in, key_in, iv_in, encrypt, &len);
+    
+    char* res = EasyEncrypt::AES::cbc256(data_in, &len, key_in, iv_in, encrypt);
     std::string str;
 
     if(encrypt) {
@@ -516,7 +524,7 @@ std::string cbc128Encoded(char* data_in, char* key_in, char* iv_in, bool encrypt
 
     int len = (encrypt) ? 0 : *data_len;
 
-    char* res = EasyEncrypt::AES::cbc128(data_in, key_in, iv_in, encrypt, &len);
+    char* res = EasyEncrypt::AES::cbc128(data_in, &len, key_in, iv_in, encrypt);
     std::string str;
 
     if(encrypt) {
@@ -539,7 +547,7 @@ std::string ecb256Encoded(char* data_in, char* key_in, bool encrypt, int* data_l
 
     int len = (encrypt) ? 0 : *data_len;
 
-    char* res = EasyEncrypt::AES::ecb256(data_in, key_in, encrypt, &len);
+    char* res = EasyEncrypt::AES::ecb256(data_in, &len, key_in, encrypt);
     std::string str;
 
     if(encrypt) {
@@ -562,7 +570,7 @@ std::string ecb128Encoded(char* data_in, char* key_in,  bool encrypt, int* data_
 
     int len = (encrypt) ? 0 : *data_len;
 
-    char* res = EasyEncrypt::AES::ecb128(data_in, key_in, encrypt, &len);
+    char* res = EasyEncrypt::AES::ecb128(data_in, &len, key_in, encrypt);
     std::string str;
 
     if(encrypt) {
@@ -581,111 +589,127 @@ std::string ecb128Encoded(char* data_in, char* key_in,  bool encrypt, int* data_
 
 }
 
-std::string EasyEncrypt::AES::Hex::cbc256(char* data_in, std::string key_in, std::string iv_in, bool encrypt) {
+std::string EasyEncrypt::AES::Hex::cbc256(std::string data_in, std::string key_in, std::string iv_in, bool encrypt) {
 
-    char* data = (encrypt) ? data_in : EasyEncrypt::Utils::fromHex((const char*) data_in);
+    std::vector<char> data = (encrypt) ?
+            EasyEncrypt::Utils::stringToVector(data_in) :
+            EasyEncrypt::Utils::fromHex(data_in);
 
-    int len = (encrypt) ? 0 : strlen(data);
+    int len = (encrypt) ? 0 : data.size();
 
-    char* key = EasyEncrypt::Utils::fromHex(key_in.c_str());
-    char* iv = EasyEncrypt::Utils::fromHex(iv_in.c_str());
+    char* key = EasyEncrypt::Utils::fromHex(key_in).data();
+    char* iv = EasyEncrypt::Utils::fromHex(iv_in).data();
 
-    return cbc256Encoded(data, key, iv, encrypt, &len, EasyEncrypt::HEX);
-
-}
-
-std::string EasyEncrypt::AES::Base64::cbc256(char* data_in, std::string key_in, std::string iv_in, bool encrypt) {
-
-    char* data = (encrypt) ? data_in : EasyEncrypt::Utils::fromBase64((const char*) data_in);
-
-    int len = (encrypt) ? 0 : strlen(data);
-
-    char* key = EasyEncrypt::Utils::fromBase64(key_in.c_str());
-    char* iv = EasyEncrypt::Utils::fromBase64(iv_in.c_str());
-
-    return cbc256Encoded(data, key, iv, encrypt, &len, EasyEncrypt::BASE64);
+    return cbc256Encoded(data.data(), key, iv, encrypt, &len, EasyEncrypt::HEX);
 
 }
 
-std::string EasyEncrypt::AES::Hex::cbc128(char* data_in, std::string key_in, std::string iv_in, bool encrypt) {
+std::string EasyEncrypt::AES::Base64::cbc256(std::string data_in, std::string key_in, std::string iv_in, bool encrypt) {
 
-    char* data = (encrypt) ? data_in : EasyEncrypt::Utils::fromHex((const char*) data_in);
+    std::vector<char> data = (encrypt) ?
+                             EasyEncrypt::Utils::stringToVector(data_in) :
+                             EasyEncrypt::Utils::fromBase64(data_in);
 
-    int len = (encrypt) ? 0 : strlen(data);
+    int len = (encrypt) ? 0 : data.size();
 
-    char* key = EasyEncrypt::Utils::fromHex(key_in.c_str());
-    char* iv = EasyEncrypt::Utils::fromHex(iv_in.c_str());
+    char* key = EasyEncrypt::Utils::fromBase64(key_in).data();
+    char* iv = EasyEncrypt::Utils::fromBase64(iv_in).data();
 
-    return cbc128Encoded(data, key, iv, encrypt, &len, EasyEncrypt::HEX);
-
-}
-
-std::string EasyEncrypt::AES::Base64::cbc128(char* data_in, std::string key_in, std::string iv_in, bool encrypt) {
-
-    char* data = (encrypt) ? data_in : EasyEncrypt::Utils::fromBase64((const char*) data_in);
-
-    int len = (encrypt) ? 0 : strlen(data);
-
-    char* key = EasyEncrypt::Utils::fromBase64(key_in.c_str());
-    char* iv = EasyEncrypt::Utils::fromBase64(iv_in.c_str());
-
-    return cbc128Encoded(data, key, iv, encrypt, &len, EasyEncrypt::BASE64);
+    return cbc256Encoded(data.data(), key, iv, encrypt, &len, EasyEncrypt::BASE64);
 
 }
 
-std::string EasyEncrypt::AES::Hex::ecb256(char* data_in, std::string key_in, bool encrypt) {
+std::string EasyEncrypt::AES::Hex::cbc128(std::string data_in, std::string key_in, std::string iv_in, bool encrypt) {
 
-    char* data = (encrypt) ? data_in : EasyEncrypt::Utils::fromHex((const char*) data_in);
+    std::vector<char> data = (encrypt) ?
+                             EasyEncrypt::Utils::stringToVector(data_in) :
+                             EasyEncrypt::Utils::fromHex(data_in);
 
-    int len = (encrypt) ? 0 : strlen(data);
+    int len = (encrypt) ? 0 : data.size();
 
-    char* key = EasyEncrypt::Utils::fromHex(key_in.c_str());
+    char* key = EasyEncrypt::Utils::fromHex(key_in).data();
+    char* iv = EasyEncrypt::Utils::fromHex(iv_in).data();
 
-    return ecb256Encoded(data, key, encrypt, &len, EasyEncrypt::HEX);
-
-}
-
-std::string EasyEncrypt::AES::Base64::ecb256(char* data_in, std::string key_in, bool encrypt) {
-
-    char* data = (encrypt) ? data_in : EasyEncrypt::Utils::fromBase64((const char*) data_in);
-
-    int len = (encrypt) ? 0 : strlen(data);
-
-    char* key = EasyEncrypt::Utils::fromBase64(key_in.c_str());
-
-    return ecb256Encoded(data, key, encrypt, &len, EasyEncrypt::BASE64);
+    return cbc128Encoded(data.data(), key, iv, encrypt, &len, EasyEncrypt::HEX);
 
 }
 
-std::string EasyEncrypt::AES::Hex::ecb128(char* data_in, std::string key_in, bool encrypt) {
+std::string EasyEncrypt::AES::Base64::cbc128(std::string data_in, std::string key_in, std::string iv_in, bool encrypt) {
 
-    char* data = (encrypt) ? data_in : EasyEncrypt::Utils::fromHex((const char*) data_in);
+    std::vector<char> data = (encrypt) ?
+                             EasyEncrypt::Utils::stringToVector(data_in) :
+                             EasyEncrypt::Utils::fromBase64(data_in);
 
-    int len = (encrypt) ? 0 : strlen(data);
+    int len = (encrypt) ? 0 : data.size();
 
-    char* key = EasyEncrypt::Utils::fromHex(key_in.c_str());
+    char* key = EasyEncrypt::Utils::fromBase64(key_in).data();
+    char* iv = EasyEncrypt::Utils::fromBase64(iv_in).data();
 
-    return ecb128Encoded(data, key, encrypt, &len, EasyEncrypt::HEX);
-
-}
-
-std::string EasyEncrypt::AES::Base64::ecb128(char* data_in, std::string key_in, bool encrypt) {
-
-    char* data = (encrypt) ? data_in : EasyEncrypt::Utils::fromBase64((const char*) data_in);
-
-    int len = (encrypt) ? 0 : strlen(data);
-
-    char* key = EasyEncrypt::Utils::fromBase64(key_in.c_str());
-
-    return ecb128Encoded(data, key,  encrypt, &len, EasyEncrypt::BASE64);
+    return cbc128Encoded(data.data(), key, iv, encrypt, &len, EasyEncrypt::BASE64);
 
 }
 
-char* EasyEncrypt::SHA::hash512(char *source) {
+std::string EasyEncrypt::AES::Hex::ecb256(std::string data_in, std::string key_in, bool encrypt) {
+
+    std::vector<char> data = (encrypt) ?
+                             EasyEncrypt::Utils::stringToVector(data_in) :
+                             EasyEncrypt::Utils::fromHex(data_in);
+
+    int len = (encrypt) ? 0 : data.size();
+
+    char* key = EasyEncrypt::Utils::fromHex(key_in).data();
+
+    return ecb256Encoded(data.data(), key,  encrypt, &len, EasyEncrypt::HEX);
+
+}
+
+std::string EasyEncrypt::AES::Base64::ecb256(std::string data_in, std::string key_in, bool encrypt) {
+
+    std::vector<char> data = (encrypt) ?
+                             EasyEncrypt::Utils::stringToVector(data_in) :
+                             EasyEncrypt::Utils::fromBase64(data_in);
+
+    int len = (encrypt) ? 0 : data.size();
+
+    char* key = EasyEncrypt::Utils::fromBase64(key_in).data();
+
+    return ecb256Encoded(data.data(), key,  encrypt, &len, EasyEncrypt::BASE64);
+
+}
+
+std::string EasyEncrypt::AES::Hex::ecb128(std::string data_in, std::string key_in, bool encrypt) {
+
+    std::vector<char> data = (encrypt) ?
+                             EasyEncrypt::Utils::stringToVector(data_in) :
+                             EasyEncrypt::Utils::fromHex(data_in);
+
+    int len = (encrypt) ? 0 : data.size();
+
+    char* key = EasyEncrypt::Utils::fromHex(key_in).data();
+
+    return ecb128Encoded(data.data(), key,  encrypt, &len, EasyEncrypt::HEX);
+
+}
+
+std::string EasyEncrypt::AES::Base64::ecb128(std::string data_in, std::string key_in, bool encrypt) {
+
+    std::vector<char> data = (encrypt) ?
+                             EasyEncrypt::Utils::stringToVector(data_in) :
+                             EasyEncrypt::Utils::fromBase64(data_in);
+
+    int len = (encrypt) ? 0 : data.size();
+
+    char* key = EasyEncrypt::Utils::fromBase64(key_in).data();
+
+    return ecb128Encoded(data.data(), key,  encrypt, &len, EasyEncrypt::BASE64);
+
+}
+
+char* EasyEncrypt::SHA::hash512(char* source, int* len) {
 
     unsigned char hash[EVP_MD_size(EVP_sha512())];
 
-    std::vector<char> data = EasyEncrypt::Utils::toVector(source, strlen(source));
+    std::vector<char> data = EasyEncrypt::Utils::toVector(source, *len);
 
     unsigned char* dataArr = (unsigned char*) malloc(data.size() - 1);
     memcpy(dataArr, data.data(), data.size() - 1);
@@ -704,15 +728,17 @@ char* EasyEncrypt::SHA::hash512(char *source) {
     memcpy(final, hash, 128);
     final[128] = '\0';
 
+    *len = 128;
+
     return final;
 
 }
 
-char* EasyEncrypt::SHA::hash256(char *source) {
+char* EasyEncrypt::SHA::hash256(char* source, int* len) {
 
     unsigned char hash[EVP_MD_size(EVP_sha256())];
 
-    std::vector<char> data = EasyEncrypt::Utils::toVector(source, strlen(source));
+    std::vector<char> data = EasyEncrypt::Utils::toVector(source, *len);
 
     unsigned char* dataArr = (unsigned char*) malloc(data.size() - 1);
     memcpy(dataArr, data.data(), data.size() - 1);
@@ -731,17 +757,19 @@ char* EasyEncrypt::SHA::hash256(char *source) {
     memcpy(final, hash, 64);
     final[64] = '\0';
 
+    *len = 64;
+
     return final;
 
 }
 
-char* EasyEncrypt::SHA::hmac256(char * _data, char* _key) {
+char* EasyEncrypt::SHA::hmac256(char * _data, int* data_len, char* _key, int key_len) {
 
     size_t len;
     unsigned char hash[SHA256_DIGEST_LENGTH];
 
-    std::vector<char> key = EasyEncrypt::Utils::toVector(_key, strlen(_key));
-    std::vector<char> data = EasyEncrypt::Utils::toVector(_data, strlen(_data));
+    std::vector<char> key = EasyEncrypt::Utils::toVector(_key, key_len);
+    std::vector<char> data = EasyEncrypt::Utils::toVector(_data, *data_len);
 
     unsigned char key_input[key.size() - 1];
     unsigned char hmac_input[data.size() - 1];
@@ -770,17 +798,19 @@ char* EasyEncrypt::SHA::hmac256(char * _data, char* _key) {
     memcpy(final, hash, 64);
     final[64] = '\0';
 
+    *data_len = 64;
+
     return final;
 
 }
 
-char* EasyEncrypt::SHA::hmac512(char * _data, char* _key) {
+char* EasyEncrypt::SHA::hmac512(char* _data, int* data_len, char* _key, int key_len) {
 
     size_t len;
     unsigned char hash[SHA512_DIGEST_LENGTH];
 
-    std::vector<char> key = EasyEncrypt::Utils::toVector(_key, strlen(_key));
-    std::vector<char> data = EasyEncrypt::Utils::toVector(_data, strlen(_data));
+    std::vector<char> key = EasyEncrypt::Utils::toVector(_key, key_len);
+    std::vector<char> data = EasyEncrypt::Utils::toVector(_data, *data_len);
 
     unsigned char key_input[key.size() - 1];
     unsigned char hmac_input[data.size() - 1];
@@ -809,13 +839,15 @@ char* EasyEncrypt::SHA::hmac512(char * _data, char* _key) {
     memcpy(final, hash, 128);
     final[128] = '\0';
 
+    *data_len = 128;
+
     return final;
 
 }
 
-char* EasyEncrypt::MD5::get(char *_data) {
+char* EasyEncrypt::MD5::get(char *_data, int* len) {
 
-    std::vector<char> data = EasyEncrypt::Utils::toVector(_data, NULL);
+    std::vector<char> data = EasyEncrypt::Utils::toVector(_data, *len);
 
     unsigned char hash[EVP_MD_size(EVP_md5())];
     unsigned char* arr = (unsigned char*) malloc(data.size() - 1);
@@ -838,111 +870,138 @@ char* EasyEncrypt::MD5::get(char *_data) {
     memcpy(final, hash, 16);
     final[16] = '\0';
 
+    *len = 16;
+
     return final;
 
 }
 
-std::string hash512Encoded(char* data, EasyEncrypt::encode_t encoding) {
+std::string hash512Encoded(char* data, int* len, EasyEncrypt::encode_t encoding) {
 
-    char* res = EasyEncrypt::SHA::hash512(data);
-
-    return (encoding == EasyEncrypt::BASE64) ? Base64::Encode(res) : EasyEncrypt::Utils::toHex(res, 64);
-
-}
-
-std::string EasyEncrypt::SHA::Hex::hash512(char *data) {
-
-    return hash512Encoded(data, EasyEncrypt::HEX);
-
-}
-
-std::string EasyEncrypt::SHA::Base64::hash512(char *data) {
-
-    return hash512Encoded(data, EasyEncrypt::BASE64);
-
-}
-
-std::string hash256Encoded(char* data, EasyEncrypt::encode_t encoding) {
-
-    char* res = EasyEncrypt::SHA::hash256(data);
-
-    return (encoding == EasyEncrypt::BASE64) ? Base64::Encode(res) : EasyEncrypt::Utils::toHex(res, 32);
-
-}
-
-std::string EasyEncrypt::SHA::Hex::hash256(char *data) {
-
-    return hash256Encoded(data, EasyEncrypt::HEX);
-
-}
-
-std::string EasyEncrypt::SHA::Base64::hash256(char *data) {
-
-    return hash256Encoded(data, EasyEncrypt::BASE64);
-
-}
-
-std::string hmac512Encoded(char* data, char* key, EasyEncrypt::encode_t encoding) {
-
-    char* res = EasyEncrypt::SHA::hmac512(data, key);
+    char* res = EasyEncrypt::SHA::hash512(data, len);
 
     return (encoding == EasyEncrypt::BASE64) ? Base64::Encode(res) : EasyEncrypt::Utils::toHex(res, 64);
 
 }
 
-std::string EasyEncrypt::SHA::Hex::hmac512(char *data, char* key) {
+std::string EasyEncrypt::SHA::Hex::hash512(std::string data) {
 
-    return hmac512Encoded(data, key, EasyEncrypt::HEX);
-
-}
-
-std::string EasyEncrypt::SHA::Base64::hmac512(char *data, char* key) {
-
-    return hmac512Encoded(data, key, EasyEncrypt::BASE64);
+    std::vector<char> data_in = EasyEncrypt::Utils::stringToVector(data);
+    int len = data.size();
+    return hash512Encoded(data_in.data(), &len, EasyEncrypt::HEX);
 
 }
 
-std::string hmac256Encoded(char* data, char* key, EasyEncrypt::encode_t encoding) {
+std::string EasyEncrypt::SHA::Base64::hash512(std::string data) {
 
-    char* res = EasyEncrypt::SHA::hmac256(data, key);
+    std::vector<char> data_in = EasyEncrypt::Utils::stringToVector(data);
+    int len = data.size();
+    return hash512Encoded(data_in.data(), &len, EasyEncrypt::BASE64);
+
+}
+
+std::string hash256Encoded(char* data, int* len, EasyEncrypt::encode_t encoding) {
+
+    char* res = EasyEncrypt::SHA::hash256(data, len);
 
     return (encoding == EasyEncrypt::BASE64) ? Base64::Encode(res) : EasyEncrypt::Utils::toHex(res, 32);
 
 }
 
-std::string EasyEncrypt::SHA::Hex::hmac256(char *data, char* key) {
+std::string EasyEncrypt::SHA::Hex::hash256(std::string data) {
 
-    return hmac256Encoded(data, key, EasyEncrypt::HEX);
-
-}
-
-std::string EasyEncrypt::SHA::Base64::hmac256(char *data, char* key) {
-
-    return hmac256Encoded(data, key, EasyEncrypt::BASE64);
+    std::vector<char> data_in = EasyEncrypt::Utils::stringToVector(data);
+    int len = data.size();
+    return hash256Encoded(data_in.data(), &len, EasyEncrypt::HEX);
 
 }
 
-std::string getMd5Encoded(char* data, EasyEncrypt::encode_t encoding) {
+std::string EasyEncrypt::SHA::Base64::hash256(std::string data) {
 
-    char* res = EasyEncrypt::MD5::get(data);
+    std::vector<char> data_in = EasyEncrypt::Utils::stringToVector(data);
+    int len = data.size();
+    return hash256Encoded(data_in.data(), &len, EasyEncrypt::BASE64);
+
+}
+
+std::string hmac512Encoded(char* data, int* data_len, char* key, int key_len, EasyEncrypt::encode_t encoding) {
+
+    char* res = EasyEncrypt::SHA::hmac512(data, data_len, key, key_len);
+
+    return (encoding == EasyEncrypt::BASE64) ? Base64::Encode(res) : EasyEncrypt::Utils::toHex(res, 64);
+
+}
+
+std::string EasyEncrypt::SHA::Hex::hmac512(std::string data, std::string key) {
+
+    std::vector<char> data_in = EasyEncrypt::Utils::stringToVector(data);
+    std::vector<char> key_in = EasyEncrypt::Utils::stringToVector(key);
+    int len = data.size();
+    return hmac512Encoded(data_in.data(), &len, key_in.data(), key_in.size(), EasyEncrypt::HEX);
+
+}
+
+std::string EasyEncrypt::SHA::Base64::hmac512(std::string data, std::string key) {
+
+    std::vector<char> data_in = EasyEncrypt::Utils::stringToVector(data);
+    std::vector<char> key_in = EasyEncrypt::Utils::stringToVector(key);
+    int len = data.size();
+    return hmac512Encoded(data_in.data(), &len, key_in.data(), key_in.size(), EasyEncrypt::BASE64);
+
+
+}
+
+std::string hmac256Encoded(char* data, int* data_len, char* key, int key_len, EasyEncrypt::encode_t encoding) {
+
+    char* res = EasyEncrypt::SHA::hmac256(data, data_len, key, key_len);
+
+    return (encoding == EasyEncrypt::BASE64) ? Base64::Encode(res) : EasyEncrypt::Utils::toHex(res, 32);
+
+}
+
+std::string EasyEncrypt::SHA::Hex::hmac256(std::string data, std::string key) {
+
+    std::vector<char> data_in = EasyEncrypt::Utils::stringToVector(data);
+    std::vector<char> key_in = EasyEncrypt::Utils::stringToVector(key);
+    int len = data.size();
+    return hmac256Encoded(data_in.data(), &len, key_in.data(), key_in.size(), EasyEncrypt::HEX);
+
+
+}
+
+std::string EasyEncrypt::SHA::Base64::hmac256(std::string data, std::string key) {
+
+    std::vector<char> data_in = EasyEncrypt::Utils::stringToVector(data);
+    std::vector<char> key_in = EasyEncrypt::Utils::stringToVector(key);
+    int len = data.size();
+    return hmac512Encoded(data_in.data(), &len, key_in.data(), key_in.size(), EasyEncrypt::BASE64);
+
+
+}
+
+std::string getMd5Encoded(std::string data, EasyEncrypt::encode_t encoding) {
+
+    std::vector<char> data_in = EasyEncrypt::Utils::stringToVector(data);
+    int len = data_in.size();
+    char* res = EasyEncrypt::MD5::get(data_in.data(), &len);
 
     return (encoding == EasyEncrypt::BASE64) ? Base64::Encode(res) : EasyEncrypt::Utils::toHex(res, 16);
 
 }
 
-std::string EasyEncrypt::MD5::Hex::get(char *data) {
+std::string EasyEncrypt::MD5::Hex::get(std::string data) {
 
     return getMd5Encoded(data, EasyEncrypt::HEX);
 
 }
 
-std::string EasyEncrypt::MD5::Base64::get(char *data) {
+std::string EasyEncrypt::MD5::Base64::get(std::string data) {
 
     return getMd5Encoded(data, EasyEncrypt::BASE64);
 
 }
 
-std::vector<char> EasyEncrypt::Utils::base64ToVector(const char* source) {
+std::vector<char> EasyEncrypt::Utils::base64ToVector(std::string source) {
 
     std::string decoded;
     Base64::Decode(source, decoded);
@@ -959,7 +1018,7 @@ std::string EasyEncrypt::Utils::toBase64(char *source, size_t size) {
 
 }
 
-std::string EasyEncrypt::Utils::base64ToHex(const char *input) {
+std::string EasyEncrypt::Utils::base64ToHex(std::string input) {
 
     return toHex(
             EasyEncrypt::Utils::base64ToVector(input).data(),
@@ -968,9 +1027,9 @@ std::string EasyEncrypt::Utils::base64ToHex(const char *input) {
 
 }
 
-std::string EasyEncrypt::Utils::hexToBase64(const char *input) {
+std::string EasyEncrypt::Utils::hexToBase64(std::string input) {
 
-    std::vector<unsigned char> data = hexToVector(input, sizeof(input));
+    std::vector<char> data = hexToVector(input, input.length());
 
     char* dataArr = (char*) malloc(data.size());
     memcpy(dataArr, data.data(), data.size());
@@ -1027,3 +1086,264 @@ std::string EasyEncrypt::Random::goodEncoded(EasyEncrypt::encode_t encoding, siz
     return (encoding == EasyEncrypt::BASE64) ? Base64::Encode(res) : EasyEncrypt::Utils::toHex(res, count);
 
 }
+
+EasyEncrypt::PublicKey::KeyPair::KeyPair(int _bits) {
+
+    int ret = 0;
+
+    unsigned int primes = 3;
+    unsigned int bits = (unsigned int) _bits;
+    OSSL_PARAM params[3];
+    EVP_PKEY *r = NULL;
+    EVP_PKEY_CTX *pctx = EVP_PKEY_CTX_new_from_name(NULL, "RSA", NULL);
+
+    EVP_PKEY_keygen_init(pctx);
+
+    params[0] = OSSL_PARAM_construct_uint("bits", &bits);
+    params[1] = OSSL_PARAM_construct_uint("primes", &primes);
+    params[2] = OSSL_PARAM_construct_end();
+    EVP_PKEY_CTX_set_params(pctx, params);
+
+    EVP_PKEY_generate(pctx, &r);
+    EVP_PKEY_CTX_free(pctx);
+
+    BIO *bp_pub = NULL;
+    BIO *bp_priv = NULL;
+
+    bp_pub = BIO_new(BIO_s_mem());
+    ret = PEM_write_bio_PUBKEY(bp_pub, r);
+    if (ret != 1) {
+        goto free_all;
+    }
+
+    bp_priv = BIO_new(BIO_s_mem());
+    ret = PEM_write_bio_PKCS8PrivateKey(bp_priv, r, NULL, NULL, 0, NULL, NULL);
+    if (ret != 1) {
+        goto free_all;
+    }
+
+    priv_len = BIO_pending(bp_priv);
+    pub_len = BIO_pending(bp_pub);
+
+    priv_key = (char*) malloc(priv_len + 1);
+    pub_key = (char*) malloc(pub_len + 1);
+
+    BIO_read(bp_priv, priv_key, priv_len);
+    BIO_read(bp_pub, pub_key, pub_len);
+
+    priv_key[priv_len] = '\0';
+    pub_key[pub_len] = '\0';
+
+    free_all:
+
+    BIO_free_all(bp_pub);
+    BIO_free_all(bp_priv);
+    EVP_PKEY_free(r);
+
+}
+
+EasyEncrypt::PublicKey::KeyPair::KeyPair(const char* password, int _bits) {
+
+    int ret = 0;
+
+    unsigned int primes = 3;
+    unsigned int bits = (unsigned int) _bits;
+    OSSL_PARAM params[3];
+    EVP_PKEY *r = NULL;
+    EVP_PKEY_CTX *pctx = EVP_PKEY_CTX_new_from_name(NULL, "RSA", NULL);
+
+    EVP_PKEY_keygen_init(pctx);
+
+    params[0] = OSSL_PARAM_construct_uint("bits", &bits);
+    params[1] = OSSL_PARAM_construct_uint("primes", &primes);
+    params[2] = OSSL_PARAM_construct_end();
+    EVP_PKEY_CTX_set_params(pctx, params);
+
+    EVP_PKEY_generate(pctx, &r);
+    EVP_PKEY_CTX_free(pctx);
+
+    BIO *bp_pub = NULL;
+    BIO *bp_priv = NULL;
+
+    bp_pub = BIO_new(BIO_s_mem());
+    ret = PEM_write_bio_PUBKEY(bp_pub, r);
+    if (ret != 1) {
+        goto free_all;
+    }
+
+    bp_priv = BIO_new(BIO_s_mem());
+    ret = PEM_write_bio_PrivateKey(bp_priv, r, EVP_des_ede3_cbc(), NULL, 0, 0, (void *) password);
+    if (ret != 1) {
+        goto free_all;
+    }
+
+    priv_len = BIO_pending(bp_priv);
+    pub_len = BIO_pending(bp_pub);
+
+    priv_key = (char*) malloc(priv_len + 1);
+    pub_key = (char*) malloc(pub_len + 1);
+
+    BIO_read(bp_priv, priv_key, priv_len);
+    BIO_read(bp_pub, pub_key, pub_len);
+
+    priv_key[priv_len] = '\0';
+    pub_key[pub_len] = '\0';
+
+    free_all:
+
+    BIO_free_all(bp_pub);
+    BIO_free_all(bp_priv);
+    EVP_PKEY_free(r);
+
+}
+
+std::string EasyEncrypt::PublicKey::KeyPair::getPublicKey() {
+
+    return pub_key;
+
+}
+
+std::string EasyEncrypt::PublicKey::KeyPair::getPrivateKey() {
+
+    return priv_key;
+
+}
+
+char* EasyEncrypt::PublicKey::encrypt(char* data, int* len, char* pub_key) {
+
+    int ret;
+    unsigned char *out;
+    char* final;
+    size_t outlen;
+    size_t inlen = *len;
+
+    EVP_PKEY *key = NULL;
+    BIO *bio = NULL;
+
+    bio = BIO_new_mem_buf((unsigned char*) pub_key, strlen(pub_key));
+    key = PEM_read_bio_PUBKEY(bio, &key, NULL, NULL);
+
+    EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new(key, NULL);
+    if (!ctx) { goto free_all; }
+    if (EVP_PKEY_encrypt_init(ctx)<=0) goto free_all;
+    if (EVP_PKEY_CTX_set_rsa_padding(ctx, RSA_PKCS1_OAEP_PADDING)<=0) goto free_all;
+
+    if (EVP_PKEY_encrypt(ctx, NULL, &outlen, (unsigned char*) data, inlen)<=0) goto free_all;
+
+    out = (unsigned char*) OPENSSL_malloc(outlen);
+    if(!out) goto free_all;
+
+    if (EVP_PKEY_encrypt(ctx, out, &outlen, (unsigned char*) data, inlen)<=0) goto free_all;
+
+    final = (char*) malloc(outlen);
+    memset(final, 0, outlen + 1);
+    memcpy(final, out, outlen);
+    *len = outlen;
+
+    free_all:
+
+    EVP_PKEY_free(key);
+    BIO_free_all(bio);
+    EVP_PKEY_CTX_free(ctx);
+    OPENSSL_free(out);
+
+    return final;
+
+}
+
+char* EasyEncrypt::PublicKey::decrypt(char* data, int* len, char* priv_key, const char* password) {
+
+    int ret;
+    unsigned char *out;
+    char* final;
+    size_t outlen;
+    size_t inlen = *len;
+
+    EVP_PKEY *key = NULL;
+    BIO *bio = NULL;
+
+    bio = BIO_new_mem_buf((unsigned char*) priv_key, strlen(priv_key));
+    key = PEM_read_bio_PrivateKey(bio, &key, NULL, (void*) password);
+
+    EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new(key, NULL);
+    if (!ctx) { goto free_all; }
+    if (EVP_PKEY_decrypt_init(ctx)<=0) goto free_all;
+    if (EVP_PKEY_CTX_set_rsa_padding(ctx, RSA_PKCS1_OAEP_PADDING)<=0) goto free_all;
+
+    if (EVP_PKEY_decrypt(ctx, NULL, &outlen, (unsigned char*) data, inlen)<=0) goto free_all;
+
+    out = (unsigned char*) OPENSSL_malloc(outlen);
+    if(!out) goto free_all;
+
+    if (EVP_PKEY_decrypt(ctx, out, &outlen, (unsigned char*) data, inlen)<=0) goto free_all;
+
+    final = (char*) malloc(outlen);
+    memset(final, 0, outlen + 1);
+    memcpy(final, out, outlen);
+    *len = outlen;
+
+    free_all:
+
+    EVP_PKEY_free(key);
+    BIO_free_all(bio);
+    EVP_PKEY_CTX_free(ctx);
+    OPENSSL_free(out);
+
+    return final;
+
+}
+
+std::string EasyEncrypt::Utils::arrToStr(char* array, size_t len) {
+
+    std::string res = "";
+
+    for(int i=0; i<len; i++) {
+        res += array[i];
+    }
+
+    return res;
+
+}
+
+std::string EasyEncrypt::PublicKey::Hex::encrypt(std::string data, char *pub_key) {
+
+    std::vector<char> data_in = EasyEncrypt::Utils::stringToVector(data);
+    int len = data_in.size();
+    char* out = EasyEncrypt::PublicKey::encrypt(data_in.data(), &len, pub_key);
+    return std::string(EasyEncrypt::Utils::toHex(out, len));
+
+}
+
+std::string EasyEncrypt::PublicKey::Hex::decrypt(std::string data, char *priv_key, const char* password) {
+
+    std::vector<char> data_in = EasyEncrypt::Utils::fromHex(data);
+    int len = data_in.size();
+    char* out = EasyEncrypt::PublicKey::decrypt(data_in.data(), &len, priv_key, password);
+    return EasyEncrypt::Utils::arrToStr(out, len);
+
+}
+
+std::string EasyEncrypt::PublicKey::Base64::encrypt(std::string data, char *pub_key) {
+
+    std::vector<char> data_in = EasyEncrypt::Utils::stringToVector(data);
+    int len = data_in.size();
+    char* out = EasyEncrypt::PublicKey::encrypt(data_in.data(), &len, pub_key);
+    return std::string(EasyEncrypt::Utils::toBase64(out, len));
+
+}
+
+std::string EasyEncrypt::PublicKey::Base64::decrypt(std::string data, char *priv_key, const char* password) {
+
+    std::vector<char> data_in = EasyEncrypt::Utils::fromBase64(data);
+    int len = data_in.size();
+    char* out = EasyEncrypt::PublicKey::decrypt(data_in.data(), &len, priv_key, password);
+    return EasyEncrypt::Utils::arrToStr(out, len);
+
+}
+
+EasyEncrypt::PublicKey::KeyPair::~KeyPair() {
+    free(priv_key);
+    free(pub_key);
+}
+
+
