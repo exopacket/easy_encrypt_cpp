@@ -10,10 +10,6 @@ class SHA;
 class MD5;
 class Utils;
 
-//TODO arrToString utility function
-//Finish debugging RSA generation and encryption
-//Signing and verification
-
 class EasyEncrypt {
 
 public:
