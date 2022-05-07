@@ -125,7 +125,6 @@ public:
             ~KeyPair();
             std::string getPublicKey();
             std::string getPrivateKey();
-            void destroy();
 
         private:
             char* priv_key;
