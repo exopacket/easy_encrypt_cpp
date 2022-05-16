@@ -74,10 +74,9 @@ std::string EasyEncrypt::Utils::toHex(char* source, size_t size) {
 
     std::stringstream ss;
 
-    int s = size;
-
-    for ( size_t i = 0 ; i < s ; ++i ) {
-        ss << std::hex << std::setw(2) << std::setfill('0') << ((int)(unsigned char) source[i]);
+    ss << std::hex << std::setfill('0');
+    for ( size_t i = 0 ; i < size ; ++i ) {
+        ss << std::setw(2) << ((int)(unsigned char) source[i]);
     }
 
     std::string data = ss.str();
@@ -124,7 +123,7 @@ std::vector<char> EasyEncrypt::Utils::hexToVector(std::string input, size_t size
         unsigned int j;
         ss >> j;
 
-        returnVal.push_back((signed) ((unsigned char) j));
+        returnVal.push_back((signed char) ((unsigned char) j));
 
     }
 
@@ -798,6 +797,8 @@ char* EasyEncrypt::SHA::hmac256(char * _data, int* data_len, char* _key, int key
     memcpy(final, hash, 64);
     final[64] = '\0';
 
+
+
     *data_len = 64;
 
     return final;
@@ -912,7 +913,6 @@ std::string EasyEncrypt::SHA::Hex::hash256(std::string data) {
 
     std::vector<char> data_in = EasyEncrypt::Utils::stringToVector(data);
     int len = data.size();
-    std::cout << "SIZE==============" << len << std::endl;
     return hash256Encoded(data_in.data(), &len, EasyEncrypt::HEX);
 
 }
