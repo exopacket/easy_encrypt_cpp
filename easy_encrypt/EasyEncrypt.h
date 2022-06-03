@@ -5,6 +5,9 @@
 #ifndef EASYENCRYPT_H
 #define EASYENCRYPT_H
 
+#include <vector>
+#include <string>
+
 class AES;
 class SHA;
 class MD5;
@@ -25,23 +28,29 @@ public:
     public:
 
         static char* cbc256(char* data, int* len, char* key, char* iv, bool encrypt);
+        static char* gcm256(char* data, int* len, char* key, char* iv, bool encrypt);
         static char* ecb256(char* data, int* len, char* key, bool encrypt);
         static char* cbc128(char* data, int* len, char* key, char* iv, bool encrypt);
+        static char* gcm128(char* data, int* len, char* key, char* iv, bool encrypt);
         static char* ecb128(char* data, int* len, char* key, bool encrypt);
 
         class Hex {
         public:
             static std::string cbc256(std::string data, std::string hex_key, std::string hex_iv, bool encrypt);
+            static std::string gcm256(std::string data, std::string hex_key, std::string hex_iv, bool encrypt);
             static std::string ecb256(std::string data, std::string hex_key, bool encrypt);
             static std::string cbc128(std::string data, std::string hex_key, std::string hex_iv, bool encrypt);
+            static std::string gcm128(std::string data, std::string hex_key, std::string hex_iv, bool encrypt);
             static std::string ecb128(std::string data, std::string hex_key, bool encrypt);
         };
 
         class Base64 {
         public:
             static std::string cbc256(std::string data, std::string base64_key, std::string base64_iv, bool encrypt);
+            static std::string gcm256(std::string data, std::string base64_key, std::string base64_iv, bool encrypt);
             static std::string ecb256(std::string data, std::string base64_key, bool encrypt);
             static std::string cbc128(std::string data, std::string base64_key, std::string base64_iv, bool encrypt);
+            static std::string gcm128(std::string data, std::string base64_key, std::string base64_iv, bool encrypt);
             static std::string ecb128(std::string data, std::string base64_key, bool encrypt);
         };
 
