@@ -27,6 +27,8 @@ public:
 
     public:
 
+        //TODO GCM encryption/decryption
+        
         static char* cbc256(char* data, int* len, char* key, char* iv, bool encrypt);
         static char* gcm256(char* data, int* len, char* key, char* iv, bool encrypt);
         static char* ecb256(char* data, int* len, char* key, bool encrypt);
