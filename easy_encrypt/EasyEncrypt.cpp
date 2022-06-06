@@ -2642,12 +2642,6 @@ EasyEncrypt::PublicKey::KeyPair::~KeyPair() {
     free(pub_key);
 }
 
-//
-// Created by root on 6/6/22.
-
-#include "EasyEncrypt.h"
-#include "Base64.h"
-
 EasyEncrypt::AESData::AESData(algorithm_t algorithm, encode_t encoding, std::string key, bool encrypt) {
 
     this->algorithm = algorithm;
