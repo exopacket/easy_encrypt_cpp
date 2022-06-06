@@ -226,7 +226,6 @@ public:
 
         static std::vector<char> fromHex(std::string source);
         static std::vector<char> fromBase64(std::string source);
-        //TODO test fromHex one more time
         static char* hexToArr(const char* input, int* len);
         static char* base64ToArr(const char* input, int* len);
 
