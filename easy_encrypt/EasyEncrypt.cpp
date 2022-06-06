@@ -2338,7 +2338,7 @@ std::string EasyEncrypt::Random::secureEncoded(EasyEncrypt::encode_t encoding, s
     std::string str = (encoding == EasyEncrypt::BASE64) ? Base64::Encode(res) : EasyEncrypt::Utils::toHex(res, count);
     free(res);
 
-    return res;
+    return str;
 
 }
 
@@ -2695,14 +2695,20 @@ EasyEncrypt::AESData::AESData(algorithm_t algorithm, encode_t encoding, std::str
     std::vector<char> iv_data = (encoding == HEX) ?
                                 EasyEncrypt::Utils::hexToVector(iv, iv.length()) :
                                 EasyEncrypt::Utils::base64ToVector(iv);
+    
+    std::vector<char> aad_data;
+    
+    if(!aad.empty()) {
 
-    std::vector<char> aad_data = (encoding == HEX) ?
-                                 EasyEncrypt::Utils::hexToVector(aad, aad.length()) :
-                                 EasyEncrypt::Utils::base64ToVector(aad);
+            aad_data = (encoding == HEX) ?
+                                     EasyEncrypt::Utils::hexToVector(aad, aad.length()) :
+                                     EasyEncrypt::Utils::base64ToVector(aad);
+
+    }
 
     this->key_size_bits = key_data.size() * 8;
     this->iv_size = iv_data.size();
-    this->aad_size = aad_data.size();
+    this->aad_size = (aad.empty()) ? -1 : aad_data.size();
     this->do_encrypt = encrypt;
 
 }
