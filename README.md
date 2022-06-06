@@ -1,5 +1,10 @@
 # easy_encrypt_cpp
 
+<b>Latest update untested.</b>
+- Freed variables
+- Added GCM support
+- Created AESData class and functions
+
 Easy one line function calls for AES Encryption, SHA hashes, MD5 hashes, RSA Public Key encryption with Private Key decryption, key generation, encoding and other utilities using the OpenSSL 3 library.<br><br>This branch differs from the 'past' branch due to the fact that it has been cleaned up and that most of the Hex and Base64 functions take the string type. This is for data with multiple null terminator characters (string type is not terminated by `'\0'` like char array strings). To create a string from a char array with multiple `'\0'` characters call the arrToStr utility function.
 
 # the EasyEncrypt class
