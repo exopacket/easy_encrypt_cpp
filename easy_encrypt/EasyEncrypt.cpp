@@ -2725,6 +2725,8 @@ EasyEncrypt::AESData* EasyEncrypt::AESData::gcm_hex_create(std::string input, st
         out->is_encrypted = true;
     }
 
+    return out;
+
 }
 
 EasyEncrypt::AESData* EasyEncrypt::AESData::cbc_hex_create(std::string input, std::string key, std::string iv,
@@ -2738,6 +2740,8 @@ EasyEncrypt::AESData* EasyEncrypt::AESData::cbc_hex_create(std::string input, st
         out->encrypted = input;
         out->is_encrypted = true;
     }
+
+    return out;
 
 }
 
@@ -2753,6 +2757,8 @@ EasyEncrypt::AESData* EasyEncrypt::AESData::ecb_hex_create(std::string input, st
         out->is_encrypted = true;
     }
 
+    return out;
+
 }
 
 EasyEncrypt::AESData* EasyEncrypt::AESData::gcm_base64_create(std::string input, std::string key, std::string iv, std::string aad,
@@ -2766,6 +2772,8 @@ EasyEncrypt::AESData* EasyEncrypt::AESData::gcm_base64_create(std::string input,
         out->encrypted = input;
         out->is_encrypted = true;
     }
+    
+    return out;
 
 }
 
@@ -2781,6 +2789,8 @@ EasyEncrypt::AESData* EasyEncrypt::AESData::cbc_base64_create(std::string input,
         out->is_encrypted = true;
     }
 
+    return out;
+    
 }
 
 EasyEncrypt::AESData* EasyEncrypt::AESData::ecb_base64_create(std::string input, std::string key,
@@ -2794,6 +2804,8 @@ EasyEncrypt::AESData* EasyEncrypt::AESData::ecb_base64_create(std::string input,
         out->encrypted = input;
         out->is_encrypted = true;
     }
+    
+    return out;
 
 }
 
