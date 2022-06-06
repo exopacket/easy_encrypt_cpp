@@ -2166,7 +2166,7 @@ std::string hash256Encoded(char* data, int* len, EasyEncrypt::encode_t encoding)
 
     free(res);
 
-    return res;
+    return str;
 
 }
 
