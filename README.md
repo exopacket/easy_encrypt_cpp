@@ -1,6 +1,6 @@
 # easy_encrypt_cpp
 
-<b>Latest update untested.</b>
+<b>Latest update untested.</b> (GCM tag doesn't verify currently, will update w/ examples soon)
 - Freed variables
 - Added GCM support
 - Created AESData class and functions
