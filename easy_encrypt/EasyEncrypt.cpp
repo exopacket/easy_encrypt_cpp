@@ -237,15 +237,15 @@ EasyEncrypt::AESData EasyEncrypt::AES::Hex::gcm(AESData data) {
             break;
         case 192:
             if(data.do_encrypt)
-                res = gcm192(data_arr, &data_len, aad, aad_size, key, iv, data.iv_size, &tag_val, nullptr, true);
+                res = gcm192(data_arr, &data_len, aad, aad_size, key, iv, data.iv_size, &tag_val, &tag_verifies, true);
             else
-                res = gcm192(data_arr, &data_len, aad, aad_size, key, iv, data.iv_size, &tag_val, nullptr, false);
+                res = gcm192(data_arr, &data_len, aad, aad_size, key, iv, data.iv_size, &tag_val, &tag_verifies, false);
             break;
         case 128:
             if(data.do_encrypt)
-                res = gcm128(data_arr, &data_len, aad, aad_size, key, iv, data.iv_size, &tag_val, nullptr, true);
+                res = gcm128(data_arr, &data_len, aad, aad_size, key, iv, data.iv_size, &tag_val, &tag_verifies, true);
             else
-                res = gcm128(data_arr, &data_len, aad, aad_size, key, iv, data.iv_size, &tag_val, nullptr, false);
+                res = gcm128(data_arr, &data_len, aad, aad_size, key, iv, data.iv_size, &tag_val, &tag_verifies, false);
             break;
     }
 
@@ -327,15 +327,15 @@ EasyEncrypt::AESData EasyEncrypt::AES::Base64::gcm(AESData data) {
             break;
         case 192:
             if(data.do_encrypt)
-                res = gcm192(data_arr, &data_len, aad, aad_size, key, iv, data.iv_size, &tag_val, nullptr, true);
+                res = gcm192(data_arr, &data_len, aad, aad_size, key, iv, data.iv_size, &tag_val, &tag_verifies, true);
             else
-                res = gcm192(data_arr, &data_len, aad, aad_size, key, iv, data.iv_size, &tag_val, nullptr, false);
+                res = gcm192(data_arr, &data_len, aad, aad_size, key, iv, data.iv_size, &tag_val, &tag_verifies, false);
             break;
         case 128:
             if(data.do_encrypt)
-                res = gcm128(data_arr, &data_len, aad, aad_size, key, iv, data.iv_size, &tag_val, nullptr, true);
+                res = gcm128(data_arr, &data_len, aad, aad_size, key, iv, data.iv_size, &tag_val, &tag_verifies, true);
             else
-                res = gcm128(data_arr, &data_len, aad, aad_size, key, iv, data.iv_size, &tag_val, nullptr, false);
+                res = gcm128(data_arr, &data_len, aad, aad_size, key, iv, data.iv_size, &tag_val, &tag_verifies, false);
             break;
     }
 
@@ -747,7 +747,7 @@ char* EasyEncrypt::AES::gcm256(char* data_in, int* data_len, char* aad_in, int a
 }
 
 char* EasyEncrypt::AES::gcm192(char* data_in, int* data_len, char* aad_in, int aad_size, char* key_in, char* iv_in, int iv_size, char** tag_val, int* verifies, bool encrypt) {
-    
+
     bool get_str_size = (*data_len == NULL || *data_len <= 0) && encrypt;
 
     std::vector<char> data = EasyEncrypt::Utils::toVector(data_in, (get_str_size) ? NULL : *data_len);
@@ -805,9 +805,9 @@ char* EasyEncrypt::AES::gcm192(char* data_in, int* data_len, char* aad_in, int a
         int ciphertext_len;
 
         ctx = EVP_CIPHER_CTX_new();
-        
+
         EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, iv_size, NULL);
-        
+
         EVP_CIPHER_CTX_set_padding(ctx, EVP_PADDING_PKCS7);
 
         EVP_EncryptInit_ex(ctx, EVP_aes_192_gcm(), NULL, aes_key, aes_iv);
