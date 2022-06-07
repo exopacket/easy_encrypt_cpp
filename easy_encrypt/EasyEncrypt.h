@@ -49,7 +49,7 @@ public:
         AESData(algorithm_t algorithm, encode_t encoding, std::string key, bool encrypt);
 
         static AESData* cbc_hex_create(std::string input, std::string key, std::string iv, bool encrypt);
-        static AESData* gcm_hex_create(std::string input, std::string key, std::string iv,  std::string aad, bool encrypt);
+        static AESData* gcm_hex_create(std::string input, std::string key, std::string iv, std::string aad, bool encrypt);
         static AESData* ecb_hex_create(std::string input, std::string key, bool encrypt);
 
         static AESData* cbc_base64_create(std::string input, std::string key, std::string iv, bool encrypt);
@@ -88,9 +88,9 @@ public:
 
     public:
 
-        static char* gcm256(char* data_in, int* data_len, char* aad_in, int aad_size, char* key_in, char* iv_in, int iv_size, char** tag_val, bool* verifies, bool encrypt);
-        static char* gcm192(char* data_in, int* data_len, char* aad_in, int aad_size, char* key_in, char* iv_in, int iv_size, char** tag_val, bool* verifies, bool encrypt);
-        static char* gcm128(char* data_in, int* data_len, char* aad_in, int aad_size, char* key_in, char* iv_in, int iv_size, char** tag_val, bool* verifies, bool encrypt);
+        static char* gcm256(char* data_in, int* data_len, char* aad_in, int aad_size, char* key_in, char* iv_in, int iv_size, char** tag_val, int* verifies, bool encrypt);
+        static char* gcm192(char* data_in, int* data_len, char* aad_in, int aad_size, char* key_in, char* iv_in, int iv_size, char** tag_val, int* verifies, bool encrypt);
+        static char* gcm128(char* data_in, int* data_len, char* aad_in, int aad_size, char* key_in, char* iv_in, int iv_size, char** tag_val, int* verifies, bool encrypt);
         
         static char* cbc256(char* data, int* len, char* key, char* iv, bool encrypt);
         static char* cbc192(char* data, int* len, char* key, char* iv, bool encrypt);
