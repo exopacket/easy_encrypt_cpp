@@ -20,7 +20,7 @@ int main() {
      * --------------------------------------------------------------------------------
      */
 
-    //This example uses the AESData object to encrypt and decrypt data
+    //This example creates an HMAC hash
 
     std::string input = "My Other Encrypted Message";
 
