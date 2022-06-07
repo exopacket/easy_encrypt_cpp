@@ -3,6 +3,7 @@
 //
 
 #include <random>
+#include <sstream>
 #include <iomanip>
 #include <chrono>
 #include <openssl/provider.h>
@@ -192,7 +193,7 @@ void calcSize(unsigned char* n, int* s) {
 
 EasyEncrypt::AESData EasyEncrypt::AES::Hex::gcm(AESData data) {
 
-    bool tag_verifies;
+    int tag_verifies;
     char* tag_val;
 
     std::vector<char> data_in = (data.do_encrypt) ?
@@ -221,9 +222,9 @@ EasyEncrypt::AESData EasyEncrypt::AES::Hex::gcm(AESData data) {
 
     if(data.aad_size > 0) {
         aad_size = data.aad_size;
-        std::vector<char> aad_in = EasyEncrypt::Utils::hexToVector(data.additional_auth_data, aad_size);
-        aad = (char*) malloc(aad_in.size());
-        memcpy(aad, aad_in.data(), aad_in.size());
+        std::vector<char> aad_in = EasyEncrypt::Utils::hexToVector(data.additional_auth_data, data.additional_auth_data.length());
+        aad = (char*) malloc(aad_size);
+        memcpy(aad, aad_in.data(), aad_size);
     }
 
     char* res;
@@ -236,15 +237,15 @@ EasyEncrypt::AESData EasyEncrypt::AES::Hex::gcm(AESData data) {
             break;
         case 192:
             if(data.do_encrypt)
-                res = gcm192(data_arr, &data_len, aad, aad_size, key, iv, data.iv_size, &tag_val, &tag_verifies, true);
+                res = gcm192(data_arr, &data_len, aad, aad_size, key, iv, data.iv_size, &tag_val, nullptr, true);
             else
-                res = gcm192(data_arr, &data_len, aad, aad_size, key, iv, data.iv_size, &tag_val, &tag_verifies, false);
+                res = gcm192(data_arr, &data_len, aad, aad_size, key, iv, data.iv_size, &tag_val, nullptr, false);
             break;
         case 128:
             if(data.do_encrypt)
-                res = gcm128(data_arr, &data_len, aad, aad_size, key, iv, data.iv_size, &tag_val, &tag_verifies, true);
+                res = gcm128(data_arr, &data_len, aad, aad_size, key, iv, data.iv_size, &tag_val, nullptr, true);
             else
-                res = gcm128(data_arr, &data_len, aad, aad_size, key, iv, data.iv_size, &tag_val, &tag_verifies, false);
+                res = gcm128(data_arr, &data_len, aad, aad_size, key, iv, data.iv_size, &tag_val, nullptr, false);
             break;
     }
 
@@ -265,6 +266,10 @@ EasyEncrypt::AESData EasyEncrypt::AES::Hex::gcm(AESData data) {
     else
         data.plaintext = str;
 
+    if(!data.do_encrypt) {
+        data.tag_verifies = tag_verifies;
+    }
+
     data.encoding_type = EasyEncrypt::HEX;
     data.algorithm = EasyEncrypt::GCM;
     data.do_encrypt = !data.do_encrypt;
@@ -273,16 +278,12 @@ EasyEncrypt::AESData EasyEncrypt::AES::Hex::gcm(AESData data) {
 
     free(tag_val);
 
-    if(!data.do_encrypt) {
-        data.tag_verifies = tag_verifies;
-    }
-
     return data;
 }
 
 EasyEncrypt::AESData EasyEncrypt::AES::Base64::gcm(AESData data) {
 
-    bool tag_verifies;
+    int tag_verifies;
     char* tag_val;
 
     std::vector<char> data_in = (data.do_encrypt) ?
@@ -326,15 +327,15 @@ EasyEncrypt::AESData EasyEncrypt::AES::Base64::gcm(AESData data) {
             break;
         case 192:
             if(data.do_encrypt)
-                res = gcm192(data_arr, &data_len, aad, aad_size, key, iv, data.iv_size, &tag_val, &tag_verifies, true);
+                res = gcm192(data_arr, &data_len, aad, aad_size, key, iv, data.iv_size, &tag_val, nullptr, true);
             else
-                res = gcm192(data_arr, &data_len, aad, aad_size, key, iv, data.iv_size, &tag_val, &tag_verifies, false);
+                res = gcm192(data_arr, &data_len, aad, aad_size, key, iv, data.iv_size, &tag_val, nullptr, false);
             break;
         case 128:
             if(data.do_encrypt)
-                res = gcm128(data_arr, &data_len, aad, aad_size, key, iv, data.iv_size, &tag_val, &tag_verifies, true);
+                res = gcm128(data_arr, &data_len, aad, aad_size, key, iv, data.iv_size, &tag_val, nullptr, true);
             else
-                res = gcm128(data_arr, &data_len, aad, aad_size, key, iv, data.iv_size, &tag_val, &tag_verifies, false);
+                res = gcm128(data_arr, &data_len, aad, aad_size, key, iv, data.iv_size, &tag_val, nullptr, false);
             break;
     }
 
@@ -607,13 +608,18 @@ EasyEncrypt::AESData EasyEncrypt::AES::Hex::ecb(AESData data) {
 
 }
 
-char* EasyEncrypt::AES::gcm256(char* data_in, int* data_len, char* aad_in, int aad_size, char* key_in, char* iv_in, int iv_size, char** tag_val, bool* verifies, bool encrypt) {
+char* EasyEncrypt::AES::gcm256(char* data_in, int* data_len, char* aad_in, int aad_size, char* key_in, char* iv_in, int iv_size, char** tag_val, int* verifies, bool encrypt) {
 
     bool get_str_size = (*data_len == NULL || *data_len <= 0) && encrypt;
 
     std::vector<char> data = EasyEncrypt::Utils::toVector(data_in, (get_str_size) ? NULL : *data_len);
     std::vector<char> key = EasyEncrypt::Utils::toVector(key_in, 32);
     std::vector<char> iv = EasyEncrypt::Utils::toVector(iv_in, iv_size);
+    std::vector<char> tag;
+
+    if(!encrypt) {
+        tag = EasyEncrypt::Utils::toVector(*tag_val, 16);
+    }
 
     size_t data_in_len = data.size();
 
@@ -630,6 +636,13 @@ char* EasyEncrypt::AES::gcm256(char* data_in, int* data_len, char* aad_in, int a
     memset(aes_iv, 0x00, iv_size);
     memcpy(aes_iv, (unsigned char*) iv.data(), iv_size);
 
+    unsigned char* tag_buff = (unsigned char*) malloc(16);
+    memset(tag_buff, 0, 16);
+
+    if(!encrypt) {
+        memcpy(tag_buff, (unsigned char*) tag.data(), 16);
+    }
+
     bool has_aad = true;
     unsigned char* aad;
 
@@ -655,10 +668,10 @@ char* EasyEncrypt::AES::gcm256(char* data_in, int* data_len, char* aad_in, int a
 
         ctx = EVP_CIPHER_CTX_new();
 
+        EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, iv_size, NULL);
+
         EVP_CIPHER_CTX_set_padding(ctx, EVP_PADDING_PKCS7);
 
-        EVP_EncryptInit_ex(ctx, EVP_aes_256_gcm(), NULL, NULL, NULL);
-        EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_IVLEN, iv_size, NULL);
         EVP_EncryptInit_ex(ctx, EVP_aes_256_gcm(), NULL, aes_key, aes_iv);
         if(has_aad)
             EVP_EncryptUpdate(ctx, NULL, &len, aad, aad_size);
@@ -666,15 +679,12 @@ char* EasyEncrypt::AES::gcm256(char* data_in, int* data_len, char* aad_in, int a
         ciphertext_len = len;
         EVP_EncryptFinal_ex(ctx, res + len, &len);
         ciphertext_len += len;
+        EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_GET_TAG, 16, (void*) tag_buff);
 
         *data_len = ciphertext_len;
 
         char* final = (char*) malloc(ciphertext_len);
         memcpy(final, res, ciphertext_len);
-
-        unsigned char* tag_buff = (unsigned char*) malloc(16);
-
-        EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_GET_TAG, 16, tag_buff);
 
         *tag_val = (char*) malloc(16);
         memcpy(*tag_val, tag_buff, 16);
@@ -699,27 +709,24 @@ char* EasyEncrypt::AES::gcm256(char* data_in, int* data_len, char* aad_in, int a
 
         ctx = EVP_CIPHER_CTX_new();
 
+        EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, iv_size, NULL);
+
         EVP_CIPHER_CTX_set_padding(ctx, EVP_PADDING_PKCS7);
 
-        EVP_DecryptInit_ex(ctx, EVP_aes_256_gcm(), NULL, NULL, NULL);
-        EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_IVLEN, iv_size, NULL);
         EVP_DecryptInit_ex(ctx, EVP_aes_256_gcm(), NULL, aes_key, aes_iv);
         if(has_aad)
             EVP_DecryptUpdate(ctx, NULL, &len, aad, aad_size);
         EVP_DecryptUpdate(ctx, res, &len, aes_input, data_in_len);
         plaintext_len = len;
+        EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_TAG, 16, (void*) tag_buff);
+
+        int tag_matched = EVP_DecryptFinal_ex(ctx, len + res, &len);
+        plaintext_len += len;
 
         int ptLen = plaintext_len;
         calcSize(res, &ptLen);
 
         *data_len = ptLen;
-
-        unsigned char* tag_buff = (unsigned char*) malloc(16);
-        memcpy(tag_buff, tag_val, 16);
-        EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_TAG, 16, tag_buff);
-
-        int tag_matched = EVP_DecryptFinal_ex(ctx, res + len, &len);
-        plaintext_len += len;
 
         char* final = (char*) malloc(ptLen);
         memset(final, 0, ptLen + 1);
@@ -731,7 +738,7 @@ char* EasyEncrypt::AES::gcm256(char* data_in, int* data_len, char* aad_in, int a
 
         EVP_CIPHER_CTX_free(ctx);
 
-        *verifies = (tag_matched > 0) ? true : false;
+        *verifies = (tag_matched > 0) ? 1 : 0;
 
         return final;
 
@@ -739,13 +746,18 @@ char* EasyEncrypt::AES::gcm256(char* data_in, int* data_len, char* aad_in, int a
 
 }
 
-char* EasyEncrypt::AES::gcm192(char* data_in, int* data_len, char* aad_in, int aad_size, char* key_in, char* iv_in, int iv_size, char** tag_val, bool* verifies, bool encrypt) {
-
+char* EasyEncrypt::AES::gcm192(char* data_in, int* data_len, char* aad_in, int aad_size, char* key_in, char* iv_in, int iv_size, char** tag_val, int* verifies, bool encrypt) {
+    
     bool get_str_size = (*data_len == NULL || *data_len <= 0) && encrypt;
 
     std::vector<char> data = EasyEncrypt::Utils::toVector(data_in, (get_str_size) ? NULL : *data_len);
     std::vector<char> key = EasyEncrypt::Utils::toVector(key_in, 24);
     std::vector<char> iv = EasyEncrypt::Utils::toVector(iv_in, iv_size);
+    std::vector<char> tag;
+
+    if(!encrypt) {
+        tag = EasyEncrypt::Utils::toVector(*tag_val, 16);
+    }
 
     size_t data_in_len = data.size();
 
@@ -762,6 +774,13 @@ char* EasyEncrypt::AES::gcm192(char* data_in, int* data_len, char* aad_in, int a
     memset(aes_iv, 0x00, iv_size);
     memcpy(aes_iv, (unsigned char*) iv.data(), iv_size);
 
+    unsigned char* tag_buff = (unsigned char*) malloc(16);
+    memset(tag_buff, 0, 16);
+
+    if(!encrypt) {
+        memcpy(tag_buff, (unsigned char*) tag.data(), 16);
+    }
+
     bool has_aad = true;
     unsigned char* aad;
 
@@ -786,11 +805,11 @@ char* EasyEncrypt::AES::gcm192(char* data_in, int* data_len, char* aad_in, int a
         int ciphertext_len;
 
         ctx = EVP_CIPHER_CTX_new();
-
+        
+        EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, iv_size, NULL);
+        
         EVP_CIPHER_CTX_set_padding(ctx, EVP_PADDING_PKCS7);
 
-        EVP_EncryptInit_ex(ctx, EVP_aes_192_gcm(), NULL, NULL, NULL);
-        EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_IVLEN, iv_size, NULL);
         EVP_EncryptInit_ex(ctx, EVP_aes_192_gcm(), NULL, aes_key, aes_iv);
         if(has_aad)
             EVP_EncryptUpdate(ctx, NULL, &len, aad, aad_size);
@@ -798,15 +817,12 @@ char* EasyEncrypt::AES::gcm192(char* data_in, int* data_len, char* aad_in, int a
         ciphertext_len = len;
         EVP_EncryptFinal_ex(ctx, res + len, &len);
         ciphertext_len += len;
+        EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_GET_TAG, 16, (void*) tag_buff);
 
         *data_len = ciphertext_len;
 
         char* final = (char*) malloc(ciphertext_len);
         memcpy(final, res, ciphertext_len);
-
-        unsigned char* tag_buff = (unsigned char*) malloc(16);
-
-        EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_GET_TAG, 16, tag_buff);
 
         *tag_val = (char*) malloc(16);
         memcpy(*tag_val, tag_buff, 16);
@@ -831,27 +847,24 @@ char* EasyEncrypt::AES::gcm192(char* data_in, int* data_len, char* aad_in, int a
 
         ctx = EVP_CIPHER_CTX_new();
 
+        EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, iv_size, NULL);
+
         EVP_CIPHER_CTX_set_padding(ctx, EVP_PADDING_PKCS7);
 
-        EVP_DecryptInit_ex(ctx, EVP_aes_192_gcm(), NULL, NULL, NULL);
-        EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_IVLEN, iv_size, NULL);
         EVP_DecryptInit_ex(ctx, EVP_aes_192_gcm(), NULL, aes_key, aes_iv);
         if(has_aad)
             EVP_DecryptUpdate(ctx, NULL, &len, aad, aad_size);
         EVP_DecryptUpdate(ctx, res, &len, aes_input, data_in_len);
         plaintext_len = len;
+        EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_TAG, 16, (void*) tag_buff);
+
+        int tag_matched = EVP_DecryptFinal_ex(ctx, len + res, &len);
+        plaintext_len += len;
 
         int ptLen = plaintext_len;
         calcSize(res, &ptLen);
 
         *data_len = ptLen;
-
-        unsigned char* tag_buff = (unsigned char*) malloc(16);
-        memcpy(tag_buff, tag_val, 16);
-        EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_TAG, 16, tag_buff);
-
-        int tag_matched = EVP_DecryptFinal_ex(ctx, res + len, &len);
-        plaintext_len += len;
 
         char* final = (char*) malloc(ptLen);
         memset(final, 0, ptLen + 1);
@@ -863,26 +876,31 @@ char* EasyEncrypt::AES::gcm192(char* data_in, int* data_len, char* aad_in, int a
 
         EVP_CIPHER_CTX_free(ctx);
 
-        *verifies = (tag_matched > 0) ? true : false;
+        *verifies = (tag_matched > 0) ? 1 : 0;
 
         return final;
 
     }
 
-}\
+}
 
-char* EasyEncrypt::AES::gcm128(char* data_in, int* data_len, char* aad_in, int aad_size, char* key_in, char* iv_in, int iv_size, char** tag_val, bool* verifies, bool encrypt) {
+char* EasyEncrypt::AES::gcm128(char* data_in, int* data_len, char* aad_in, int aad_size, char* key_in, char* iv_in, int iv_size, char** tag_val, int* verifies, bool encrypt) {
 
     bool get_str_size = (*data_len == NULL || *data_len <= 0) && encrypt;
 
     std::vector<char> data = EasyEncrypt::Utils::toVector(data_in, (get_str_size) ? NULL : *data_len);
     std::vector<char> key = EasyEncrypt::Utils::toVector(key_in, 16);
     std::vector<char> iv = EasyEncrypt::Utils::toVector(iv_in, iv_size);
+    std::vector<char> tag;
+
+    if(!encrypt) {
+        tag = EasyEncrypt::Utils::toVector(*tag_val, 16);
+    }
 
     size_t data_in_len = data.size();
 
     unsigned char aes_input[data_in_len];
-    unsigned char aes_key[16];
+    unsigned char aes_key[24];
 
     memset(aes_input, 0x00, data_in_len);
     memset(aes_key, 0x00, 16);
@@ -894,6 +912,13 @@ char* EasyEncrypt::AES::gcm128(char* data_in, int* data_len, char* aad_in, int a
     memset(aes_iv, 0x00, iv_size);
     memcpy(aes_iv, (unsigned char*) iv.data(), iv_size);
 
+    unsigned char* tag_buff = (unsigned char*) malloc(16);
+    memset(tag_buff, 0, 16);
+
+    if(!encrypt) {
+        memcpy(tag_buff, (unsigned char*) tag.data(), 16);
+    }
+
     bool has_aad = true;
     unsigned char* aad;
 
@@ -919,10 +944,10 @@ char* EasyEncrypt::AES::gcm128(char* data_in, int* data_len, char* aad_in, int a
 
         ctx = EVP_CIPHER_CTX_new();
 
+        EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, iv_size, NULL);
+
         EVP_CIPHER_CTX_set_padding(ctx, EVP_PADDING_PKCS7);
 
-        EVP_EncryptInit_ex(ctx, EVP_aes_128_gcm(), NULL, NULL, NULL);
-        EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_IVLEN, iv_size, NULL);
         EVP_EncryptInit_ex(ctx, EVP_aes_128_gcm(), NULL, aes_key, aes_iv);
         if(has_aad)
             EVP_EncryptUpdate(ctx, NULL, &len, aad, aad_size);
@@ -930,15 +955,12 @@ char* EasyEncrypt::AES::gcm128(char* data_in, int* data_len, char* aad_in, int a
         ciphertext_len = len;
         EVP_EncryptFinal_ex(ctx, res + len, &len);
         ciphertext_len += len;
+        EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_GET_TAG, 16, (void*) tag_buff);
 
         *data_len = ciphertext_len;
 
         char* final = (char*) malloc(ciphertext_len);
         memcpy(final, res, ciphertext_len);
-
-        unsigned char* tag_buff = (unsigned char*) malloc(16);
-
-        EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_GET_TAG, 16, tag_buff);
 
         *tag_val = (char*) malloc(16);
         memcpy(*tag_val, tag_buff, 16);
@@ -963,27 +985,24 @@ char* EasyEncrypt::AES::gcm128(char* data_in, int* data_len, char* aad_in, int a
 
         ctx = EVP_CIPHER_CTX_new();
 
+        EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, iv_size, NULL);
+
         EVP_CIPHER_CTX_set_padding(ctx, EVP_PADDING_PKCS7);
 
-        EVP_DecryptInit_ex(ctx, EVP_aes_128_gcm(), NULL, NULL, NULL);
-        EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_IVLEN, iv_size, NULL);
         EVP_DecryptInit_ex(ctx, EVP_aes_128_gcm(), NULL, aes_key, aes_iv);
         if(has_aad)
             EVP_DecryptUpdate(ctx, NULL, &len, aad, aad_size);
         EVP_DecryptUpdate(ctx, res, &len, aes_input, data_in_len);
         plaintext_len = len;
+        EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_TAG, 16, (void*) tag_buff);
+
+        int tag_matched = EVP_DecryptFinal_ex(ctx, len + res, &len);
+        plaintext_len += len;
 
         int ptLen = plaintext_len;
         calcSize(res, &ptLen);
 
         *data_len = ptLen;
-
-        unsigned char* tag_buff = (unsigned char*) malloc(16);
-        memcpy(tag_buff, tag_val, 16);
-        EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_TAG, 16, tag_buff);
-
-        int tag_matched = EVP_DecryptFinal_ex(ctx, res + len, &len);
-        plaintext_len += len;
 
         char* final = (char*) malloc(ptLen);
         memset(final, 0, ptLen + 1);
@@ -995,7 +1014,7 @@ char* EasyEncrypt::AES::gcm128(char* data_in, int* data_len, char* aad_in, int a
 
         EVP_CIPHER_CTX_free(ctx);
 
-        *verifies = (tag_matched > 0) ? true : false;
+        *verifies = (tag_matched > 0) ? 1 : 0;
 
         return final;
 
@@ -2716,16 +2735,16 @@ EasyEncrypt::AESData::AESData(algorithm_t algorithm, encode_t encoding, std::str
 EasyEncrypt::AESData* EasyEncrypt::AESData::gcm_hex_create(std::string input, std::string key, std::string iv, std::string aad,
                                                            bool encrypt) {
 
-    AESData* out = new AESData(GCM, HEX, key, iv, aad, encrypt);
+    AESData* obj = new AESData(GCM, HEX, key, iv, aad, encrypt);
     if(encrypt) {
-        out->plaintext = input;
-        out->is_encrypted = false;
+        obj->plaintext = input;
+        obj->is_encrypted = false;
     } else {
-        out->encrypted = input;
-        out->is_encrypted = true;
+        obj->encrypted = input;
+        obj->is_encrypted = true;
     }
 
-    return out;
+    return obj;
 
 }
 
