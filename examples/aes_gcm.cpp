@@ -35,6 +35,8 @@ int main() {
     std::cout << "Tag Value: " << aes_obj1->tag << std::endl;
 
     //Setting the do_encrypt variable to false
+    //** this step is not required if you keep a copy of the AESData object
+    //   after encryption, the do_encrypt variable is changed to false.
     aes_obj1->do_encrypt = false;
 
     //Decrypting and storing the result in the same AESData object
@@ -68,6 +70,8 @@ int main() {
     std::cout << "Encrypted Result 2: " << gcm_res.encrypted << std::endl;
 
     //Setting the object to decryption
+    //** this step is not required if you keep a copy of the AESData object
+    //   after encryption, the do_encrypt variable is changed to false.
     gcm_res.do_encrypt = false;
 
     //Decrypting and storing in previously created result object
