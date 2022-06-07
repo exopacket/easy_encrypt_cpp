@@ -9,7 +9,6 @@ int main() {
 
     //Creating a HEX key and iv (256 bit & 128 bit == 256 bit encryption)
     std::string hex_key = EasyEncrypt::Random::secureEncoded(EasyEncrypt::HEX, 32);
-    std::string hex_iv = EasyEncrypt::Random::secureEncoded(EasyEncrypt::HEX, 16);
 
     //creating a message string to encrypt
     std::string msg = "My Encrypted Message";
