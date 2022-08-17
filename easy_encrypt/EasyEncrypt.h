@@ -162,7 +162,7 @@ public:
         };
 
     };
-       class AESData {
+    class AESData {
     public:
         encode_t encoding_type;
         algorithm_t algorithm;
