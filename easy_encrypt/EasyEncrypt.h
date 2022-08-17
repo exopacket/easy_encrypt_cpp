@@ -27,63 +27,6 @@ public:
         CBC,
         ECB
     };
-    class AESData {
-    public:
-        encode_t encoding_type;
-        algorithm_t algorithm;
-        bool do_encrypt;
-        bool is_encrypted;
-        bool tag_verifies;
-        int key_size_bits;
-        int iv_size;
-        int aad_size = -1;
-        std::string key;
-        std::string iv;
-        std::string encrypted;
-        std::string plaintext;
-        std::string additional_auth_data;
-        std::string tag;
-        
-        AESData(algorithm_t algorithm, encode_t encoding, std::string key, std::string iv, bool encrypt);
-        AESData(algorithm_t algorithm, encode_t encoding, std::string key, std::string iv, std::string aad, bool encrypt);
-        AESData(algorithm_t algorithm, encode_t encoding, std::string key, bool encrypt);
-
-        static AESData* cbc_hex_create(std::string input, std::string key, std::string iv, bool encrypt);
-        static AESData* gcm_hex_create(std::string input, std::string key, std::string iv, std::string aad, bool encrypt);
-        static AESData* ecb_hex_create(std::string input, std::string key, bool encrypt);
-
-        static AESData* cbc_base64_create(std::string input, std::string key, std::string iv, bool encrypt);
-        static AESData* gcm_base64_create(std::string input, std::string key, std::string iv, std::string aad, bool encrypt);
-        static AESData* ecb_base64_create(std::string input, std::string key, bool encrypt);
-
-        void set_plaintext(std::string str);
-
-        void set_encrypted_hex_encoded(std::string encrypted);
-        void set_encrypted_hex(char* encrypted, size_t len);
-        void set_encrypted_base64_encoded(std::string encrypted);
-        void set_encrypted_base64(char* encrypted, size_t len);
-
-        void set_key_hex_encoded(std::string key);
-        void set_key_hex(char* key, size_t len);
-        void set_key_base64_encoded(std::string key);
-        void set_key_base64(char* key, size_t len);
-
-        void set_iv_hex_encoded(std::string iv);
-        void set_iv_hex(char* iv, size_t len);
-        void set_iv_base64_encoded(std::string iv);
-        void set_iv_base64(char* iv, size_t len);
-
-        void set_aad_hex_encoded(std::string aad);
-        void set_aad_hex(char* aad, size_t len);
-        void set_aad_base64_encoded(std::string aad);
-        void set_aad_base64(char* aad, size_t len);
-
-        void set_tag_hex_encoded(std::string tag);
-        void set_tag_hex(char* tag, size_t len);
-        void set_tag_base64_encoded(std::string tag);
-        void set_tag_base64(char* tag, size_t len);
-
-    };
     class AES {
 
     public:
@@ -217,6 +160,63 @@ public:
             size_t pub_len;
 
         };
+
+    };
+       class AESData {
+    public:
+        encode_t encoding_type;
+        algorithm_t algorithm;
+        bool do_encrypt;
+        bool is_encrypted;
+        bool tag_verifies;
+        int key_size_bits;
+        int iv_size;
+        int aad_size = -1;
+        std::string key;
+        std::string iv;
+        std::string encrypted;
+        std::string plaintext;
+        std::string additional_auth_data;
+        std::string tag;
+        
+        AESData(algorithm_t algorithm, encode_t encoding, std::string key, std::string iv, bool encrypt);
+        AESData(algorithm_t algorithm, encode_t encoding, std::string key, std::string iv, std::string aad, bool encrypt);
+        AESData(algorithm_t algorithm, encode_t encoding, std::string key, bool encrypt);
+
+        static AESData* cbc_hex_create(std::string input, std::string key, std::string iv, bool encrypt);
+        static AESData* gcm_hex_create(std::string input, std::string key, std::string iv, std::string aad, bool encrypt);
+        static AESData* ecb_hex_create(std::string input, std::string key, bool encrypt);
+
+        static AESData* cbc_base64_create(std::string input, std::string key, std::string iv, bool encrypt);
+        static AESData* gcm_base64_create(std::string input, std::string key, std::string iv, std::string aad, bool encrypt);
+        static AESData* ecb_base64_create(std::string input, std::string key, bool encrypt);
+
+        void set_plaintext(std::string str);
+
+        void set_encrypted_hex_encoded(std::string encrypted);
+        void set_encrypted_hex(char* encrypted, size_t len);
+        void set_encrypted_base64_encoded(std::string encrypted);
+        void set_encrypted_base64(char* encrypted, size_t len);
+
+        void set_key_hex_encoded(std::string key);
+        void set_key_hex(char* key, size_t len);
+        void set_key_base64_encoded(std::string key);
+        void set_key_base64(char* key, size_t len);
+
+        void set_iv_hex_encoded(std::string iv);
+        void set_iv_hex(char* iv, size_t len);
+        void set_iv_base64_encoded(std::string iv);
+        void set_iv_base64(char* iv, size_t len);
+
+        void set_aad_hex_encoded(std::string aad);
+        void set_aad_hex(char* aad, size_t len);
+        void set_aad_base64_encoded(std::string aad);
+        void set_aad_base64(char* aad, size_t len);
+
+        void set_tag_hex_encoded(std::string tag);
+        void set_tag_hex(char* tag, size_t len);
+        void set_tag_base64_encoded(std::string tag);
+        void set_tag_base64(char* tag, size_t len);
 
     };
     class Utils {
