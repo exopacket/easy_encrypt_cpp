@@ -8,8 +8,8 @@
 #include <vector>
 #include <string>
 
-class AES;
 class AESData;
+class AES;
 class SHA;
 class MD5;
 class Utils;
@@ -26,6 +26,63 @@ public:
         GCM,
         CBC,
         ECB
+    };
+    class AESData {
+    public:
+        encode_t encoding_type;
+        algorithm_t algorithm;
+        bool do_encrypt;
+        bool is_encrypted;
+        bool tag_verifies;
+        int key_size_bits;
+        int iv_size;
+        int aad_size = -1;
+        std::string key;
+        std::string iv;
+        std::string encrypted;
+        std::string plaintext;
+        std::string additional_auth_data;
+        std::string tag;
+
+        AESData(algorithm_t algorithm, encode_t encoding, std::string key, std::string iv, bool encrypt);
+        AESData(algorithm_t algorithm, encode_t encoding, std::string key, std::string iv, std::string aad, bool encrypt);
+        AESData(algorithm_t algorithm, encode_t encoding, std::string key, bool encrypt);
+
+        static AESData* cbc_hex_create(std::string input, std::string key, std::string iv, bool encrypt);
+        static AESData* gcm_hex_create(std::string input, std::string key, std::string iv, std::string aad, bool encrypt);
+        static AESData* ecb_hex_create(std::string input, std::string key, bool encrypt);
+
+        static AESData* cbc_base64_create(std::string input, std::string key, std::string iv, bool encrypt);
+        static AESData* gcm_base64_create(std::string input, std::string key, std::string iv, std::string aad, bool encrypt);
+        static AESData* ecb_base64_create(std::string input, std::string key, bool encrypt);
+
+        void set_plaintext(std::string str);
+
+        void set_encrypted_hex_encoded(std::string encrypted);
+        void set_encrypted_hex(char* encrypted, size_t len);
+        void set_encrypted_base64_encoded(std::string encrypted);
+        void set_encrypted_base64(char* encrypted, size_t len);
+
+        void set_key_hex_encoded(std::string key);
+        void set_key_hex(char* key, size_t len);
+        void set_key_base64_encoded(std::string key);
+        void set_key_base64(char* key, size_t len);
+
+        void set_iv_hex_encoded(std::string iv);
+        void set_iv_hex(char* iv, size_t len);
+        void set_iv_base64_encoded(std::string iv);
+        void set_iv_base64(char* iv, size_t len);
+
+        void set_aad_hex_encoded(std::string aad);
+        void set_aad_hex(char* aad, size_t len);
+        void set_aad_base64_encoded(std::string aad);
+        void set_aad_base64(char* aad, size_t len);
+
+        void set_tag_hex_encoded(std::string tag);
+        void set_tag_hex(char* tag, size_t len);
+        void set_tag_base64_encoded(std::string tag);
+        void set_tag_base64(char* tag, size_t len);
+
     };
     class AES {
 
@@ -77,24 +134,33 @@ public:
     class SHA {
     public:
         static char* hmac512(char *data, int* len, char* key, int key_len);
+        static char* hmac384(char *data, int* len, char* key, int key_len);
         static char* hmac256(char *data, int* len, char* key, int key_len);
         static char* hash512(char* data, int* len);
+        static char* hash384(char* data, int* len);
         static char* hash256(char* data, int* len);
+        static char* sha1(char* data, int* len);
 
         class Hex {
         public:
             static std::string hmac512(std::string data, std::string key);
+            static std::string hmac384(std::string data, std::string key);
             static std::string hmac256(std::string data, std::string key);
             static std::string hash512(std::string data);
+            static std::string hash384(std::string data);
             static std::string hash256(std::string data);
+            static std::string sha1(std::string data);
         };
 
         class Base64 {
         public:
             static std::string hmac512(std::string data, std::string key);
+            static std::string hmac384(std::string data, std::string key);
             static std::string hmac256(std::string data, std::string key);
             static std::string hash512(std::string data);
+            static std::string hash384(std::string data);
             static std::string hash256(std::string data);
+            static std::string sha1(std::string data);
         };
 
     };
@@ -160,63 +226,6 @@ public:
             size_t pub_len;
 
         };
-
-    };
-    class AESData {
-    public:
-        encode_t encoding_type;
-        algorithm_t algorithm;
-        bool do_encrypt;
-        bool is_encrypted;
-        bool tag_verifies;
-        int key_size_bits;
-        int iv_size;
-        int aad_size = -1;
-        std::string key;
-        std::string iv;
-        std::string encrypted;
-        std::string plaintext;
-        std::string additional_auth_data;
-        std::string tag;
-        
-        AESData(algorithm_t algorithm, encode_t encoding, std::string key, std::string iv, bool encrypt);
-        AESData(algorithm_t algorithm, encode_t encoding, std::string key, std::string iv, std::string aad, bool encrypt);
-        AESData(algorithm_t algorithm, encode_t encoding, std::string key, bool encrypt);
-
-        static AESData* cbc_hex_create(std::string input, std::string key, std::string iv, bool encrypt);
-        static AESData* gcm_hex_create(std::string input, std::string key, std::string iv, std::string aad, bool encrypt);
-        static AESData* ecb_hex_create(std::string input, std::string key, bool encrypt);
-
-        static AESData* cbc_base64_create(std::string input, std::string key, std::string iv, bool encrypt);
-        static AESData* gcm_base64_create(std::string input, std::string key, std::string iv, std::string aad, bool encrypt);
-        static AESData* ecb_base64_create(std::string input, std::string key, bool encrypt);
-
-        void set_plaintext(std::string str);
-
-        void set_encrypted_hex_encoded(std::string encrypted);
-        void set_encrypted_hex(char* encrypted, size_t len);
-        void set_encrypted_base64_encoded(std::string encrypted);
-        void set_encrypted_base64(char* encrypted, size_t len);
-
-        void set_key_hex_encoded(std::string key);
-        void set_key_hex(char* key, size_t len);
-        void set_key_base64_encoded(std::string key);
-        void set_key_base64(char* key, size_t len);
-
-        void set_iv_hex_encoded(std::string iv);
-        void set_iv_hex(char* iv, size_t len);
-        void set_iv_base64_encoded(std::string iv);
-        void set_iv_base64(char* iv, size_t len);
-
-        void set_aad_hex_encoded(std::string aad);
-        void set_aad_hex(char* aad, size_t len);
-        void set_aad_base64_encoded(std::string aad);
-        void set_aad_base64(char* aad, size_t len);
-
-        void set_tag_hex_encoded(std::string tag);
-        void set_tag_hex(char* tag, size_t len);
-        void set_tag_base64_encoded(std::string tag);
-        void set_tag_base64(char* tag, size_t len);
 
     };
     class Utils {

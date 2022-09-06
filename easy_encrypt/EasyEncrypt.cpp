@@ -2,6 +2,7 @@
 // Created by ryan on 10/17/21.
 //
 
+#include "EasyEncrypt.h"
 #include <random>
 #include <sstream>
 #include <iomanip>
@@ -13,7 +14,6 @@
 #include "openssl/rand.h"
 #include <openssl/rsa.h>
 #include <openssl/pem.h>
-#include "EasyEncrypt.h"
 #include "Base64.h"
 #include "stdlib.h"
 
@@ -2005,6 +2005,37 @@ char* EasyEncrypt::SHA::hash512(char* source, int* len) {
 
 }
 
+char* EasyEncrypt::SHA::hash384(char* source, int* len) {
+
+    unsigned char hash[EVP_MD_size(EVP_sha384())];
+
+    std::vector<char> data = EasyEncrypt::Utils::toVector(source, *len);
+
+    unsigned char* dataArr = (unsigned char*) malloc(data.size());
+    memcpy(dataArr, data.data(), data.size());
+
+    const EVP_MD *md = EVP_get_digestbyname("sha384");
+    EVP_MD_CTX *mdctx;
+    mdctx = EVP_MD_CTX_create();
+    EVP_DigestInit_ex(mdctx, md, NULL);
+    EVP_DigestUpdate(mdctx, dataArr, data.size());
+    unsigned int digest_len;
+    EVP_DigestFinal_ex(mdctx, hash, &digest_len);
+
+    EVP_MD_CTX_free(mdctx);
+
+    char* final = (char*) malloc(97);
+    memcpy(final, hash, 96);
+    final[96] = '\0';
+
+    *len = 96;
+
+    free(dataArr);
+
+    return final;
+
+}
+
 char* EasyEncrypt::SHA::hash256(char* source, int* len) {
 
     unsigned char hash[EVP_MD_size(EVP_sha256())];
@@ -2029,6 +2060,37 @@ char* EasyEncrypt::SHA::hash256(char* source, int* len) {
     final[64] = '\0';
 
     *len = 64;
+
+    free(dataArr);
+
+    return final;
+
+}
+
+char* EasyEncrypt::SHA::sha1(char* source, int* len) {
+
+    unsigned char hash[EVP_MD_size(EVP_sha1())];
+
+    std::vector<char> data = EasyEncrypt::Utils::toVector(source, *len);
+
+    unsigned char* dataArr = (unsigned char*) malloc(data.size());
+    memcpy(dataArr, data.data(), data.size());
+
+    const EVP_MD *md = EVP_sha1();
+    EVP_MD_CTX *mdctx;
+    mdctx = EVP_MD_CTX_create();
+    EVP_DigestInit_ex(mdctx, md, NULL);
+    EVP_DigestUpdate(mdctx, dataArr, data.size());
+    unsigned int digest_len;
+    EVP_DigestFinal_ex(mdctx, hash, &digest_len);
+
+    EVP_MD_CTX_free(mdctx);
+
+    char* final = (char*) malloc(21);
+    memcpy(final, hash, 20);
+    final[20] = '\0';
+
+    *len = 20;
 
     free(dataArr);
 
@@ -2118,6 +2180,47 @@ char* EasyEncrypt::SHA::hmac512(char* _data, int* data_len, char* _key, int key_
 
 }
 
+char* EasyEncrypt::SHA::hmac384(char* _data, int* data_len, char* _key, int key_len) {
+
+    size_t len;
+    unsigned char hash[SHA384_DIGEST_LENGTH];
+
+    std::vector<char> key = EasyEncrypt::Utils::toVector(_key, key_len);
+    std::vector<char> data = EasyEncrypt::Utils::toVector(_data, *data_len);
+
+    unsigned char key_input[key.size()];
+    unsigned char hmac_input[data.size()];
+
+    memset(key_input, 0, key.size());
+    memcpy(key_input, key.data(), key.size());
+
+    memset(hmac_input, 0, data.size());
+    memcpy(hmac_input, data.data(), data.size());
+
+    OSSL_PARAM params[2];
+    EVP_MAC *mac = EVP_MAC_fetch(NULL, "HMAC", NULL);
+    EVP_MAC_CTX *mac_ctx = EVP_MAC_CTX_new(mac);
+    EVP_MAC_free(mac);
+
+    params[0] = OSSL_PARAM_construct_utf8_string("digest", (char*) "SHA384", 0);
+    params[1] = OSSL_PARAM_construct_end();
+
+    EVP_MAC_init(mac_ctx, key_input, key.size(), params);
+    EVP_MAC_update(mac_ctx, hmac_input, data.size());
+    EVP_MAC_final(mac_ctx, hash, &len, sizeof(hash));
+
+    EVP_MAC_CTX_free(mac_ctx);
+
+    char* final = (char*) malloc(97);
+    memcpy(final, hash, 96);
+    final[96] = '\0';
+
+    *data_len = 96;
+
+    return final;
+
+}
+
 char* EasyEncrypt::MD5::get(char *_data, int* len) {
 
     std::vector<char> data = EasyEncrypt::Utils::toVector(_data, *len);
@@ -2177,6 +2280,35 @@ std::string EasyEncrypt::SHA::Base64::hash512(std::string data) {
 
 }
 
+
+std::string hash384Encoded(char* data, int* len, EasyEncrypt::encode_t encoding) {
+
+    char* res = EasyEncrypt::SHA::hash384(data, len);
+
+    std::string str = (encoding == EasyEncrypt::BASE64) ? Base64::Encode(res) : EasyEncrypt::Utils::toHex(res, 64);
+
+    free(res);
+
+    return str;
+
+}
+
+std::string EasyEncrypt::SHA::Hex::hash384(std::string data) {
+
+    std::vector<char> data_in = EasyEncrypt::Utils::stringToVector(data);
+    int len = data.size();
+    return hash384Encoded(data_in.data(), &len, EasyEncrypt::HEX);
+
+}
+
+std::string EasyEncrypt::SHA::Base64::hash384(std::string data) {
+
+    std::vector<char> data_in = EasyEncrypt::Utils::stringToVector(data);
+    int len = data.size();
+    return hash384Encoded(data_in.data(), &len, EasyEncrypt::BASE64);
+
+}
+
 std::string hash256Encoded(char* data, int* len, EasyEncrypt::encode_t encoding) {
 
     char* res = EasyEncrypt::SHA::hash256(data, len);
@@ -2202,6 +2334,35 @@ std::string EasyEncrypt::SHA::Base64::hash256(std::string data) {
     std::vector<char> data_in = EasyEncrypt::Utils::stringToVector(data);
     int len = data.size();
     return hash256Encoded(data_in.data(), &len, EasyEncrypt::BASE64);
+
+}
+
+
+std::string sha1Encoded(char* data, int* len, EasyEncrypt::encode_t encoding) {
+
+    char* res = EasyEncrypt::SHA::sha1(data, len);
+
+    std::string str = (encoding == EasyEncrypt::BASE64) ? Base64::Encode(res) : EasyEncrypt::Utils::toHex(res, 32);
+
+    free(res);
+
+    return str;
+
+}
+
+std::string EasyEncrypt::SHA::Hex::sha1(std::string data) {
+
+    std::vector<char> data_in = EasyEncrypt::Utils::stringToVector(data);
+    int len = data.size();
+    return sha1Encoded(data_in.data(), &len, EasyEncrypt::HEX);
+
+}
+
+std::string EasyEncrypt::SHA::Base64::sha1(std::string data) {
+
+    std::vector<char> data_in = EasyEncrypt::Utils::stringToVector(data);
+    int len = data.size();
+    return sha1Encoded(data_in.data(), &len, EasyEncrypt::BASE64);
 
 }
 
@@ -2236,6 +2397,37 @@ std::string EasyEncrypt::SHA::Base64::hmac512(std::string data, std::string key)
 
 }
 
+std::string hmac384Encoded(char* data, int* data_len, char* key, int key_len, EasyEncrypt::encode_t encoding) {
+
+    char* res = EasyEncrypt::SHA::hmac384(data, data_len, key, key_len);
+
+    std::string str =  (encoding == EasyEncrypt::BASE64) ? Base64::Encode(res) : EasyEncrypt::Utils::toHex(res, 64);
+
+    free(res);
+
+    return str;
+
+}
+
+std::string EasyEncrypt::SHA::Hex::hmac384(std::string data, std::string key) {
+
+    std::vector<char> data_in = EasyEncrypt::Utils::stringToVector(data);
+    std::vector<char> key_in = EasyEncrypt::Utils::stringToVector(key);
+    int len = data.size();
+    return hmac384Encoded(data_in.data(), &len, key_in.data(), key_in.size(), EasyEncrypt::HEX);
+
+}
+
+std::string EasyEncrypt::SHA::Base64::hmac384(std::string data, std::string key) {
+
+    std::vector<char> data_in = EasyEncrypt::Utils::stringToVector(data);
+    std::vector<char> key_in = EasyEncrypt::Utils::stringToVector(key);
+    int len = data.size();
+    return hmac384Encoded(data_in.data(), &len, key_in.data(), key_in.size(), EasyEncrypt::BASE64);
+
+
+}
+
 std::string hmac256Encoded(char* data, int* data_len, char* key, int key_len, EasyEncrypt::encode_t encoding) {
 
     char* res = EasyEncrypt::SHA::hmac256(data, data_len, key, key_len);
@@ -2263,7 +2455,7 @@ std::string EasyEncrypt::SHA::Base64::hmac256(std::string data, std::string key)
     std::vector<char> data_in = EasyEncrypt::Utils::stringToVector(data);
     std::vector<char> key_in = EasyEncrypt::Utils::stringToVector(key);
     int len = data.size();
-    return hmac512Encoded(data_in.data(), &len, key_in.data(), key_in.size(), EasyEncrypt::BASE64);
+    return hmac384Encoded(data_in.data(), &len, key_in.data(), key_in.size(), EasyEncrypt::BASE64);
 
 
 }
